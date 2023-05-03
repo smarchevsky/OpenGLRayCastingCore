@@ -232,13 +232,14 @@ void BVHBuilder::buildRecurcive(int nodeIndex, std::vector<Triangle> const& vecT
 	if (len.y > len.x)
 		axis = 1;
 
-	if (len.z > len.y&& len.z > len.x)
+    if (len.z > len.y && len.z > len.x)
 		axis = 2;
 
 	std::vector<Triangle> tempLeftTriangleList;
 	std::vector<Triangle> tempRightTriangleList;
 
-	auto splitByAxis = [&tempLeftTriangleList, &tempRightTriangleList, &midPoint, &vecTriangle](std::function<float(vec3 const& point)> getElement)
+    auto splitByAxis = [&tempLeftTriangleList, &tempRightTriangleList, &midPoint, &vecTriangle]
+            (std::function<float(vec3 const& point)> getElement)
 	{
 		for (Triangle const& tri : vecTriangle)
 		{

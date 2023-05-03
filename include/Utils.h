@@ -1,7 +1,7 @@
 #pragma once
 namespace Utils
 {
-	constexpr char resourceDir[] = "/Users/turbo13/Projects/OpenGLRayCastingCore/";
+	constexpr char resourceDir[] = "/home/staseg/Projects/Downloaded/OpenGLRayCastingCore/";
 	
 	inline uint32_t powerOfTwo(uint32_t value)
 	{

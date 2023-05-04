@@ -43,7 +43,7 @@ TextureGL loadGeometry(BVHBuilder& bvh, std::string const& path)
     //                  << std::endl;
     //    }
 
-    assert(false);
+    //    assert(false);
     const std::vector<glm::ivec3> triIndices;
 
     uint32_t vertexCount = vertex.size() / 3; // 3 vertex component x,y,z

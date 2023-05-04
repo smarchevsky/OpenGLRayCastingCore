@@ -54,7 +54,7 @@ vec2 get2DIndex(int index, int width)
 
 Node getNode(int index)
 {
-	index = abs(index * 3);
+	index = index * 3;
 
 	vec3 integerData = texture(texNode, get2DIndex(index, bvhWidth)).rgb;
 	vec3 aabbMin = texture(texNode, get2DIndex(index + 1, bvhWidth)).rgb;
@@ -176,10 +176,10 @@ void traceCloseHitV2(inout Ray ray, inout Hit hit)
         if(!slabs(ray, select.aabbMin, select.aabbMax, tempt))
             continue;
         
-        if(select.leftChild < 0 && select.rightChild < 0)
+        if(select.leftChild > 0 && select.rightChild > 0)
         {
             float leftMinT = 0;
-            float rightMinT= 0;
+            float rightMinT = 0;
             Node right = getNode(select.rightChild);
             Node left = getNode(select.leftChild);
             bool rightI = slabs(ray, right.aabbMin, right.aabbMax,  rightMinT);
@@ -206,21 +206,21 @@ void traceCloseHitV2(inout Ray ray, inout Hit hit)
             continue;
         }
 // int leftChild; // int rightChild;
-        if (select.rightChild < 0)
+        if (select.rightChild > 0)
             stackPush(select.rightChild);
 
-        if (select.leftChild < 0)
+        if (select.leftChild > 0)
             stackPush(select.leftChild);
 
-        if(select.rightChild >= 0)
+        if(select.rightChild <= 0)
         {
-            try = getTriangle(select.rightChild);
+            try = getTriangle(abs(select.rightChild));
             isect_tri(ray, try, hit);
         }
 
-        if(select.leftChild >= 0)
+        if(select.leftChild <= 0)
         {
-            try = getTriangle(select.leftChild);
+            try = getTriangle(abs(select.leftChild));
             isect_tri(ray, try, hit);
         }
     }

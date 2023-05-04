@@ -129,7 +129,7 @@ int BVHBuilder::getNodesSize()
     return texSize;
 }
 
-std::vector<Node> BVHBuilder::getNodes()
+const std::vector<Node>& BVHBuilder::getNodes()
 {
     return nodeList;
 }
@@ -147,7 +147,7 @@ void BVHBuilder::buildRecurcive(int nodeIndex, std::vector<Triangle> const& vecT
     if (vecTriangle.size() == 2) {
         /*node.rightChildIsTriangle = true;
         node.leftChildIsTriangle = true;*/
-        node.childIsTriangle = 3;
+        // node.childIsTriangle = 3;
         node.leftChild = vecTriangle[0].getIndex();
         node.rightChild = vecTriangle[1].getIndex();
         return;
@@ -201,20 +201,20 @@ void BVHBuilder::buildRecurcive(int nodeIndex, std::vector<Triangle> const& vecT
 
     if (tempLeftTriangleList.size() == 1) {
         node.leftChild = tempLeftTriangleList[0].getIndex();
-        node.childIsTriangle = 1;
-        // node.leftChildIsTriangle = true;
+        // node.childIsTriangle = 1;
+        //  node.leftChildIsTriangle = true;
     } else {
-        node.leftChild = nodeList.size();
+        node.leftChild = -(int)nodeList.size();
         nodeList.emplace_back();
         buildRecurcive(nodeList.size() - 1, tempLeftTriangleList);
     }
 
     if (tempRightTriangleList.size() == 1) {
         node.rightChild = tempRightTriangleList[0].getIndex();
-        node.childIsTriangle = 2;
-        // node.rightChildIsTriangle = true;
+        // node.childIsTriangle = 2;
+        //  node.rightChildIsTriangle = true;
     } else {
-        node.rightChild = nodeList.size();
+        node.rightChild = -(int)nodeList.size();
         nodeList.emplace_back();
         buildRecurcive(nodeList.size() - 1, tempRightTriangleList);
     }
@@ -225,20 +225,20 @@ bool BVHBuilder::travelRecurcive(Node& node, glm::vec3& origin, glm::vec3& direc
     if (!node.aabb.rayIntersect(origin, direction, minT))
         return false;
 
-    if ((int)ceil(node.childIsTriangle) & 2)
-        if (vecTriangle.at(abs(node.rightChild)).rayIntersect(origin, direction, color, minT))
+    if (node.rightChild >= 0)
+        if (vecTriangle.at(node.rightChild).rayIntersect(origin, direction, color, minT))
             return true;
 
-    if ((int)ceil(node.childIsTriangle) & 1)
-        if (vecTriangle.at(abs(node.leftChild)).rayIntersect(origin, direction, color, minT))
+    if (node.leftChild >= 0)
+        if (vecTriangle.at(node.leftChild).rayIntersect(origin, direction, color, minT))
             return true;
 
-    if (((int)ceil(node.childIsTriangle) & 2) == 0)
-        if (travelRecurcive(nodeList[node.rightChild], origin, direction, color, minT))
+    if (node.rightChild < 0)
+        if (travelRecurcive(nodeList[abs(node.rightChild)], origin, direction, color, minT))
             return true;
 
-    if (((int)ceil(node.childIsTriangle) & 1) == 0)
-        if (travelRecurcive(nodeList[node.leftChild], origin, direction, color, minT))
+    if (node.leftChild < 0)
+        if (travelRecurcive(nodeList[abs(node.leftChild)], origin, direction, color, minT))
             return true;
 
     return false;
@@ -259,11 +259,11 @@ bool BVHBuilder::travelStack(Node& node, glm::vec3& origin, glm::vec3& direction
         if (!select.aabb.rayIntersect(origin, direction, minT))
             continue;
 
-        if (select.childIsTriangle == 0) {
+        if (select.rightChild < 0 && select.leftChild < 0) {
             float leftMinT = 0;
             float rightMinT = 0;
-            Node right = nodeList.at(select.rightChild);
-            Node left = nodeList.at(select.leftChild);
+            Node right = nodeList.at(std::abs(select.rightChild));
+            Node left = nodeList.at(std::abs(select.leftChild));
             bool rightI = right.aabb.rayIntersect(origin, direction, rightMinT);
             bool leftI = left.aabb.rayIntersect(origin, direction, rightMinT);
 
@@ -274,18 +274,16 @@ bool BVHBuilder::travelStack(Node& node, glm::vec3& origin, glm::vec3& direction
             continue;
         }
 
-        if (((int)ceil(select.childIsTriangle) & 2) == 0)
+        if (select.rightChild < 0) {
             stack.push(select.rightChild);
-
-        if (((int)ceil(select.childIsTriangle) & 1) == 0)
-            stack.push(select.leftChild);
-
-        if (((int)ceil(select.childIsTriangle) & 2) > 0) {
+        } else {
             tri = vecTriangle.at(select.rightChild);
             tri.rayIntersect(origin, direction, color, minT);
         }
 
-        if (((int)ceil(select.childIsTriangle) & 1) > 0) {
+        if (select.leftChild < 0) {
+            stack.push(select.leftChild);
+        } else {
             tri = vecTriangle.at(select.leftChild);
             tri.rayIntersect(origin, direction, color, minT);
         }

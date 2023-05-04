@@ -22,7 +22,6 @@ struct Triangle
 };
 struct Node
 {
-	int childIsTriangle;
     int leftChild;
     int rightChild;
     vec3 aabbMin;
@@ -55,14 +54,13 @@ vec2 get2DIndex(int index, int width)
 
 Node getNode(int index)
 {
-	index = index * 3;
+	index = abs(index * 3);
 
 	vec3 integerData = texture(texNode, get2DIndex(index, bvhWidth)).rgb;
 	vec3 aabbMin = texture(texNode, get2DIndex(index + 1, bvhWidth)).rgb;
 	vec3 aabbMax = texture(texNode, get2DIndex(index + 2, bvhWidth)).rgb;
 
 	Node node;
-	node.childIsTriangle = int(integerData.x);
 	node.leftChild = int(integerData.y);
 	node.rightChild = int(integerData.z);
 	node.aabbMin = aabbMin;
@@ -178,7 +176,7 @@ void traceCloseHitV2(inout Ray ray, inout Hit hit)
         if(!slabs(ray, select.aabbMin, select.aabbMax, tempt))
             continue;
         
-        if(select.childIsTriangle == 0)
+        if(select.leftChild < 0 && select.rightChild < 0)
         {
             float leftMinT = 0;
             float rightMinT= 0;
@@ -207,20 +205,20 @@ void traceCloseHitV2(inout Ray ray, inout Hit hit)
                 stackPush(select.leftChild);
             continue;
         }
-
-        if ((select.childIsTriangle & 2) == 0)
+// int leftChild; // int rightChild;
+        if (select.rightChild < 0)
             stackPush(select.rightChild);
 
-        if ((select.childIsTriangle & 1) == 0)
+        if (select.leftChild < 0)
             stackPush(select.leftChild);
 
-        if((select.childIsTriangle & 2) > 0)
+        if(select.rightChild >= 0)
         {
             try = getTriangle(select.rightChild);
             isect_tri(ray, try, hit);
         }
 
-        if((select.childIsTriangle & 1) > 0)
+        if(select.leftChild >= 0)
         {
             try = getTriangle(select.leftChild);
             isect_tri(ray, try, hit);

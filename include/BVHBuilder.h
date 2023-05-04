@@ -58,9 +58,9 @@ struct Node {
     AABB aabb;
 
     Node()
-        : /*leftChildIsTriangle(false), rightChildIsTriangle(false)*/ childIsTriangle(0)
-        , leftChild(-1)
-        , rightChild(-1)
+        : /*leftChildIsTriangle(false), rightChildIsTriangle(false)*/ // childIsTriangle(0)
+        leftChild(0)
+        , rightChild(0)
     {
     }
 };
@@ -75,7 +75,7 @@ public:
     void travelCycle(glm::vec3& origin, glm::vec3& direction, glm::vec3& color, float& minT);
     Node* const bvhToTexture();
     int getNodesSize();
-    std::vector<Node> getNodes();
+    const std::vector<Node> &getNodes();
 
 private:
     void buildRecurcive(int nodeIndex, std::vector<Triangle> const& vecTriangle);

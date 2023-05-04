@@ -93,17 +93,9 @@ Model3D ModelLoader::toSingleMeshArray(
         uvs[i] = { rawUV[i * 3], rawUV[i * 3 + 1] };
     }
 
-    if (normals.size() < positions.size()) {
-        for (int i = 0; i < positions.size() - normals.size(); ++i) {
-            normals.push_back({ 0, 0, 1 });
-        }
-    }
+    normals.resize(positions.size(), glm::vec3(0, 0, 1));
+    uvs.resize(positions.size(), glm::vec2(0, 0));
 
-    if (uvs.size() < uvs.size()) {
-        for (int i = 0; i < positions.size() - uvs.size(); ++i) {
-            uvs.push_back({ 0, 0 });
-        }
-    }
     size_t indexOffset {};
     Model3D resultModel;
 

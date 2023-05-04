@@ -228,40 +228,6 @@ void traceCloseHitV2(inout Ray ray, inout Hit hit)
     }
 }
 
-mat3 rotationMatrix(vec3 axis, float angle)
-{
-   axis = normalize(axis);
-   float s = sin(angle);
-   float c = cos(angle);
-   float oc = 1.0 - c;
-
-   return mat3(oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,
-               oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,
-               oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c);
-}
-
-void traceCloseFor(inout Ray ray, inout Hit hit)
-{
-	hit.isHit = false;
-
-	Node nod = getNode(2230);
-	float temp = 0;
-
-	//slabs(ray, vec3(-2.3, -5.0, -9.16), vec3(2.3, 5.0, 9), temp);
-	slabs(ray, nod.aabbMin, nod.aabbMax, temp);
-	hit.normal = vec3(0, 0, 0);
-	// if(nod.childIsTriangle == 0)
-	// 	chit.normal = vec3(1, 0, 0);
-	if(temp > 0)
-		hit.normal = vec3(1, 0, 0);
-
-	// for(int i = 0; i< 15216; i++)
-	// {
-	// 	Triangle tri = getTriangle(i);
-	// 	isect_tri(ray, tri, chit);
-	// }
-}
-
 void main() {
     vec3 viewDir = normalize(vec3((gl_FragCoord.xy - screeResolution.xy*0.5) / screeResolution.y, 1.0));
     vec3 worldDir = viewToWorld * viewDir;

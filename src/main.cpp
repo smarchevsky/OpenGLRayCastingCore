@@ -18,19 +18,12 @@ using glm::vec3;
 using glm::vec4;
 using std::vector;
 
-constexpr int WinWidth = 1920;
-constexpr int WinHeight = 1080;
+constexpr int WinWidth = 2000;
+constexpr int WinHeight = 1000;
 
 std::map<int, bool> buttinInputKeys; // keyboard key
 float yaw = 0.0f; // for cam rotate
 float pitch = 0.0f; // for cam rotate
-
-TextureGL BVHNodesToTexture(BVHBuilder& bvh)
-{
-    float const* texNodeData = (float*)(bvh.bvhToTexture());
-    int texWidthNode = bvh.getNodesSize();
-    return TextureGL(texWidthNode, texWidthNode, TextureGLType::VertexDataXYZ, texNodeData);
-}
 
 TextureGL loadGeometry(BVHBuilder& bvh, std::string const& path)
 {
@@ -42,6 +35,15 @@ TextureGL loadGeometry(BVHBuilder& bvh, std::string const& path)
     const auto& model = ModelLoader::toSingleMeshArray(vertex, normal, uv);
     bvh.build(vertex);
 
+    //    for (int i = 0; i < bvh.getNodes().size(); ++i) {
+    //        const auto& n = bvh.getNodes()[i];
+    //        std::cout << "Node: " << i
+    //                  << "\t leftChild: " << n.leftChild
+    //                  << "\t rightChild: " << n.rightChild
+    //                  << std::endl;
+    //    }
+
+    assert(false);
     const std::vector<glm::ivec3> triIndices;
 
     uint32_t vertexCount = vertex.size() / 3; // 3 vertex component x,y,z
@@ -50,6 +52,13 @@ TextureGL loadGeometry(BVHBuilder& bvh, std::string const& path)
     vertex.resize(texWidthPos * texWidthPos * 3, 0.0); // for pack x,y,z to  r,g,b
 
     return TextureGL(texWidthPos, texWidthPos, TextureGLType::VertexDataXYZ, vertex.data());
+}
+
+TextureGL BVHNodesToTexture(BVHBuilder& bvh)
+{
+    float const* texNodeData = (float*)(bvh.bvhToTexture());
+    int texWidthNode = bvh.getNodesSize();
+    return TextureGL(texWidthNode, texWidthNode, TextureGLType::VertexDataXYZ, texNodeData);
 }
 
 // FPS Camera rotate
@@ -150,8 +159,8 @@ int main(int ArgCount, char** Args)
                 return 0;
 
             if (Event.type == SDL_MOUSEMOTION) {
-                pitch += Event.motion.yrel * 0.03;
-                yaw += Event.motion.xrel * 0.03;
+                pitch += Event.motion.yrel * 0.08;
+                yaw += Event.motion.xrel * 0.08;
             }
 
             if (Event.type == SDL_KEYDOWN && keyIsInside())

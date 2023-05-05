@@ -107,8 +107,8 @@ private:
 }; // node.triIndex = tempRightTriangleList[0].triIndex;
 
 struct Node {
-    glm::vec3 leftChild; // x for node index, xyz for triIndex
-    glm::vec3 rightChild;
+    //glm::vec4 dummy; // x for node index, xyz for triIndex
+    float leftChild, rightChild;
     AABB aabb;
 
     Node()

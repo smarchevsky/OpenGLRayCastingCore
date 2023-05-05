@@ -10,8 +10,8 @@ uniform mat3 viewToWorld;
 uniform sampler2D texNode;
 uniform ivec2 texNodeSize;
 
-// uniform sampler2D texIndices;
-// uniform ivec2 texIndicesSize;
+uniform sampler2D texIndices;
+uniform ivec2 texIndicesSize;
 
 uniform sampler2D texVertArray;
 uniform ivec2 texVertArraySize;
@@ -20,8 +20,8 @@ uniform ivec2 texVertArraySize;
 
 struct Node
 {
-    ivec3 leftChild;
-    ivec3 rightChild;
+    int leftChild;
+    int rightChild;
     vec3 aabbMin;
     vec3 aabbMax;
 };
@@ -52,17 +52,16 @@ vec2 get2DIndex(int index,  ivec2 textureSize)
 
 Node getNode(int index)
 {
-	index = index * 3;
+	index = index * 2;
     vec4 data0 = texture(texNode, get2DIndex(index + 0, texNodeSize)).rgba;
     vec4 data1 = texture(texNode, get2DIndex(index + 1, texNodeSize)).rgba;
-    vec4 data2 = texture(texNode, get2DIndex(index + 2, texNodeSize)).rgba;
 
 	Node node;
 
-	node.leftChild = ivec3(data0.rgb);
-	node.rightChild = ivec3(data0.a, data1.rg);
-	node.aabbMin = vec3(data1.ba, data2.r);
-	node.aabbMax = data2.gba;
+	node.leftChild = int(data0.r);
+	node.rightChild = int(data0.g);
+	node.aabbMin = vec3(data0.ba, data1.r);
+	node.aabbMax = data1.gba;
 	return node;
 }
 
@@ -79,8 +78,9 @@ struct IndexedTriangle
    Vertex v2;
 };
 
-IndexedTriangle getIndexedTriangle(ivec3 triIndices)
+IndexedTriangle getIndexedTriangle(int triIndex)
 {
+    ivec3 triIndices = ivec3(texture(texIndices, get2DIndex(triIndex, texIndicesSize)).rgb);
     triIndices *= 2;
 
     vec4 data0, data1;
@@ -153,6 +153,8 @@ bool slabs(in Ray ray, in vec3 minB, in vec3 maxB, inout float localMin) {
 bool isect_tri(inout Ray ray, in IndexedTriangle tri, inout Hit hit) {
 	vec3 e1 = tri.v1.p - tri.v0.p;
 	vec3 e2 = tri.v2.p - tri.v0.p;
+    // if(dot(cross(e1,e2), ray.direction) > 0) return false; // backface culling
+
 	vec3 P = cross(ray.direction, e2);
 	float det = dot(e1, P);
 	if (abs(det) < 1e-4)
@@ -201,12 +203,12 @@ void traceCloseHitV2(inout Ray ray, inout Hit hit)
         if(!slabs(ray, select.aabbMin, select.aabbMax, tempt))
             continue;
         
-        if(select.leftChild.x > 0 && select.rightChild.x > 0)
+        if(select.leftChild > 0 && select.rightChild > 0)
         {
             float leftMinT = 0;
             float rightMinT = 0;
-            Node right = getNode(select.rightChild.x);
-            Node left = getNode(select.leftChild.x);
+            Node right = getNode(select.rightChild);
+            Node left = getNode(select.leftChild);
             bool rightI = slabs(ray, right.aabbMin, right.aabbMax,  rightMinT);
             bool leftI = slabs(ray, left.aabbMin, left.aabbMax,  leftMinT);
 
@@ -214,36 +216,36 @@ void traceCloseHitV2(inout Ray ray, inout Hit hit)
             {
                 if (rightMinT < leftMinT)
                 {
-                    stackPush(select.leftChild.x);
-                    stackPush(select.rightChild.x);
+                    stackPush(select.leftChild);
+                    stackPush(select.rightChild);
                 }
                 else
                 {
-                    stackPush(select.rightChild.x);
-                    stackPush(select.leftChild.x);
+                    stackPush(select.rightChild);
+                    stackPush(select.leftChild);
                 }
                 continue;
             }
             if(rightI)
-                stackPush(select.rightChild.x);
+                stackPush(select.rightChild);
             else
-                stackPush(select.leftChild.x);
+                stackPush(select.leftChild);
             continue;
         }
 
-        if (select.rightChild.x > 0)
-            stackPush(select.rightChild.x);
+        if (select.rightChild > 0)
+            stackPush(select.rightChild);
 
-        if (select.leftChild.x > 0)
-            stackPush(select.leftChild.x);
+        if (select.leftChild > 0)
+            stackPush(select.leftChild);
 
-        if(select.rightChild.x <= 0)
+        if(select.rightChild <= 0)
         {
             try = getIndexedTriangle(abs(select.rightChild));
             isect_tri(ray, try, hit);
         }
 
-        if(select.leftChild.x <= 0)
+        if(select.leftChild <= 0)
         {
             try = getIndexedTriangle(abs(select.leftChild));
             isect_tri(ray, try, hit);

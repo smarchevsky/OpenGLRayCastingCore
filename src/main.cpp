@@ -22,22 +22,22 @@ constexpr int TEXTURE_WIDTH = 256;
 
 #define LOG(x) std::cout << x << std::endl
 
-constexpr int WinWidth = 2400;
-constexpr int WinHeight = 1300;
+constexpr int WinWidth = 1920;
+constexpr int WinHeight = 1080;
 
 std::map<int, bool> buttinInputKeys; // keyboard key
-float yaw = 0.0f; // for cam rotate
-float pitch = 0.0f; // for cam rotate
+float yaw = -90.0f; // for cam rotate
+float pitch = 00.0f; // for cam rotate
 
-void loadGeometry(BVHBuilder& bvh, std::string const& path, Model3D& outModel)
+void loadGeometry(BVHBuilder& bvh, std::string const& path, Model3D& model)
 {
     vector<float> vertex;
     vector<float> normal;
     vector<float> uv;
 
     ModelLoader::Obj(path, vertex, normal, uv);
-    outModel = ModelLoader::toSingleMeshArray(vertex, normal, uv);
-    bvh.build(vertex);
+    model = ModelLoader::toSingleMeshArray(vertex, normal, uv);
+    bvh.build(model);
 
     //    for (int i = 0; i < bvh.getNodes().size(); ++i) {
     //        const auto& n = bvh.getNodes()[i];
@@ -83,8 +83,8 @@ TextureGL createIndexTexture(const Model3D& model)
 
 TextureGL createVertexArrayTexture(const Model3D& model)
 {
-    const int floatsPerPixel = 3;
-    const auto format = TextureGLType::RGB_32F;
+    const int floatsPerPixel = 4;
+    const auto format = TextureGLType::RGBA_32F;
 
     // auto indices = model.triangles;
     std::vector<float> vertexArray;
@@ -94,14 +94,12 @@ TextureGL createVertexArrayTexture(const Model3D& model)
         vertexArray.push_back(v.position.x);
         vertexArray.push_back(v.position.y);
         vertexArray.push_back(v.position.z);
-
         vertexArray.push_back(v.normal.x);
+
         vertexArray.push_back(v.normal.y);
         vertexArray.push_back(v.normal.z);
-
         vertexArray.push_back(v.uv.x);
         vertexArray.push_back(v.uv.y);
-        vertexArray.push_back(0);
     }
 
     int pixelCount = vertexArray.size() / floatsPerPixel;
@@ -117,7 +115,7 @@ TextureGL BVHNodesToTexture(BVHBuilder& bvh)
 {
     float const* texNodeData = (float*)(bvh.bvhToTexture());
     int texWidthNode = bvh.getTextureSideSize();
-    return TextureGL(texWidthNode, texWidthNode, TextureGLType::RGB_32F, texNodeData);
+    return TextureGL(texWidthNode, texWidthNode, TextureGLType::RGBA_32F, texNodeData);
 }
 
 // FPS Camera rotate
@@ -136,7 +134,7 @@ void updateMatrix(glm::mat3& viewToWorld)
 // FPS Camera move
 void cameraMove(vec3& location, glm::mat3 const& viewToWorld)
 {
-    float speed = 0.1f;
+    float speed = 0.2f;
     if (buttinInputKeys[SDLK_w])
         location += viewToWorld * vec3(0, 0, 1) * speed;
 
@@ -202,7 +200,7 @@ int main(int ArgCount, char** Args)
     ShaderProgram shaderProgram("shaders/vertex.vert", "shaders/raytracing.frag");
 
     // Variable for camera
-    vec3 location = vec3(0, 0.1, -20);
+    vec3 location = vec3(11, 0.01, -0.501);
     mat3 viewToWorld = mat3(1.0f);
 
     // Add value  in map

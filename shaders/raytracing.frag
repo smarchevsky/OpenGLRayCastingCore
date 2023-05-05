@@ -21,6 +21,7 @@ uniform ivec2 texVertArraySize;
 
 struct Node
 {
+    ivec4 triData;
     int leftChild;
     int rightChild;
     vec3 aabbMin;
@@ -54,16 +55,16 @@ vec2 get2DIndex(int index,  ivec2 textureSize)
 Node getNode(int index)
 {
 	index = index * 3;
-
-	vec3 integerData = texture(texNode, get2DIndex(index, texNodeSize)).rgb;
-	vec3 aabbMin = texture(texNode, get2DIndex(index + 1, texNodeSize)).rgb;
-	vec3 aabbMax = texture(texNode, get2DIndex(index + 2, texNodeSize)).rgb;
+    //vec4 data0 = texture(texNode, get2DIndex(index + 0, texNodeSize)).rgba;
+    vec4 data1 = texture(texNode, get2DIndex(index + 1, texNodeSize)).rgba;
+    vec4 data2 = texture(texNode, get2DIndex(index + 2, texNodeSize)).rgba;
 
 	Node node;
-	node.leftChild = int(integerData.y);
-	node.rightChild = int(integerData.z);
-	node.aabbMin = aabbMin;
-	node.aabbMax = aabbMax;
+    //node.triData = ivec4(data0);
+	node.leftChild = int(data1.r);
+	node.rightChild = int(data1.g);
+	node.aabbMin = vec3(data1.ba, data2.r);
+	node.aabbMax = data2.gba;
 	return node;
 }
 
@@ -83,20 +84,23 @@ struct IndexedTriangle
 IndexedTriangle getIndexedTriangle(int triIndex)
 {
     ivec3 triIndices = ivec3(texture(texIndices, get2DIndex(triIndex, texIndicesSize)).rgb);
-    triIndices *= 3;
+    triIndices *= 2;
 
+    vec4 data0, data1;
     IndexedTriangle triangle;
-    triangle.v0.p = texture(texVertArray, get2DIndex(triIndices.r, texVertArraySize)).rgb;
-    triangle.v0.n = texture(texVertArray, get2DIndex(triIndices.r + 1, texVertArraySize)).rgb;
-    triangle.v0.t = texture(texVertArray, get2DIndex(triIndices.r + 2, texVertArraySize)).rg;
 
-    triangle.v1.p = texture(texVertArray, get2DIndex(triIndices.g, texVertArraySize)).rgb;
-    triangle.v1.n = texture(texVertArray, get2DIndex(triIndices.g + 1, texVertArraySize)).rgb;
-    triangle.v1.t = texture(texVertArray, get2DIndex(triIndices.g + 2, texVertArraySize)).rg;
+    data0 = texture(texVertArray, get2DIndex(triIndices.r, texVertArraySize)).rgba;
+    data1 = texture(texVertArray, get2DIndex(triIndices.r + 1, texVertArraySize)).rgba;
+    triangle.v0.p = data0.rgb; triangle.v0.n = vec3(data0.a, data1.rg); triangle.v0.t = data1.ba;
+   
+    data0 = texture(texVertArray, get2DIndex(triIndices.g, texVertArraySize)).rgba;
+    data1 = texture(texVertArray, get2DIndex(triIndices.g + 1, texVertArraySize)).rgba;
+    triangle.v1.p = data0.rgb; triangle.v1.n = vec3(data0.a, data1.rg); triangle.v1.t = data1.ba;
+   
+    data0 = texture(texVertArray, get2DIndex(triIndices.b, texVertArraySize)).rgba;
+    data1 = texture(texVertArray, get2DIndex(triIndices.b + 1, texVertArraySize)).rgba;
+    triangle.v2.p = data0.rgb; triangle.v2.n = vec3(data0.a, data1.rg); triangle.v2.t = data1.ba;
 
-    triangle.v2.p = texture(texVertArray, get2DIndex(triIndices.b, texVertArraySize)).rgb;
-    triangle.v2.n = texture(texVertArray, get2DIndex(triIndices.b + 1, texVertArraySize)).rgb;
-    triangle.v2.t = texture(texVertArray, get2DIndex(triIndices.b + 2, texVertArraySize)).rg;
 	return triangle;
 }
 
@@ -267,7 +271,7 @@ void main() {
     //color = vec4(0.5+hit.normal*0.5, 1.0);
 
     vec3 col = vec3(-dot(hit.normal, ray.direction));
-    color = vec4(col, 1.0);
+    color = vec4(hit.normal * .5 + 0.5, 1.0);
     
-    color = vec4(hit.uv, 0., 1.0);
+    //color = vec4(hit.uv, 0., 1.0);
 }

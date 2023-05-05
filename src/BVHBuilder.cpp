@@ -5,101 +5,21 @@
 #include <stack>
 using glm::vec3;
 
-struct Triangle {
-private:
-    vec3 vertex1;
-    vec3 vertex2;
-    vec3 vertex3;
-    int index;
-    vec3 center;
-    AABB aabb;
-
-public:
-    Triangle(vec3 vertex1, vec3 vertex2, vec3 vertex3, int index)
-        : vertex1(vertex1)
-        , vertex2(vertex2)
-        , vertex3(vertex3)
-        , index(index)
-    {
-        aabb = genAABB();
-        center = genCenter();
-    }
-
-    Triangle()
-        : Triangle(vec3(0, 0, 0), vec3(0, 0, 0), vec3(0, 0, 0), -1) {};
-
-    bool rayIntersect(vec3& origin, vec3& direction, vec3& normal, float& mint)
-    {
-        vec3 e1 = vertex2 - vertex1;
-        vec3 e2 = vertex3 - vertex1;
-        vec3 P = glm::cross(direction, e2);
-        float det = glm::dot(e1, P);
-
-        if (abs(det) < 1e-4)
-            return false;
-
-        float inv_det = 1.0 / det;
-        vec3 T = origin - vertex1;
-        float u = glm::dot(T, P) * inv_det;
-
-        if (u < 0.0 || u > 1.0)
-            return false;
-
-        vec3 Q = glm::cross(T, e1);
-        float v = glm::dot(direction, Q) * inv_det;
-
-        if (v < 0.0 || (v + u) > 1.0)
-            return false;
-
-        float tt = glm::dot(e2, Q) * inv_det;
-
-        if (tt <= 0.0 || tt > mint)
-            return false;
-
-        normal = glm::normalize(glm::cross(e1, e2));
-        mint = tt;
-        return true;
-    }
-
-    vec3& getCenter() { return center; }
-    AABB& getAABB() { return aabb; }
-    int getIndex() { return index; }
-
-    vec3 getCenter() const { return center; }
-    AABB getAABB() const { return aabb; }
-    int getIndex() const { return index; }
-
-private:
-    vec3 genCenter()
-    {
-        vec3 sum = vertex1 + vertex2 + vertex3;
-        vec3 centerDim = sum / 3.0f;
-        return centerDim;
-    }
-
-    AABB genAABB()
-    {
-        return AABB(
-            glm::min(glm::min(vertex1, vertex2), vertex3),
-            glm::max(glm::max(vertex1, vertex2), vertex3));
-    }
-};
-
 BVHBuilder::BVHBuilder() { }
 
-void BVHBuilder::build(std::vector<float> const& vertexRaw)
+void BVHBuilder::build(const Model3D& model)
 {
     size_t nodeSize = sizeof(Node);
     nodeList.push_back(Node());
 
-    int floatInTriangle = 9; // x,y,z x,y,z x,y,z = 9 float
-    for (int index = 0; index < vertexRaw.size(); index += floatInTriangle) {
-        vecTriangle.emplace_back(
-            vec3(vertexRaw[index + 0], vertexRaw[index + 1], vertexRaw[index + 2]),
-            vec3(vertexRaw[index + 3], vertexRaw[index + 4], vertexRaw[index + 5]),
-            vec3(vertexRaw[index + 6], vertexRaw[index + 7], vertexRaw[index + 8]),
-            index / floatInTriangle);
+    const auto& v = model.vertices;
+    for (int i = 0; i < model.triangles.size(); ++i) {
+        const int i0 = model.triangles[i].x;
+        const int i1 = model.triangles[i].y;
+        const int i2 = model.triangles[i].z;
+        vecTriangle.emplace_back(v[i0].position, v[i1].position, v[i2].position, i, model.triangles[i]);
     }
+
     nodeList.reserve(vecTriangle.size());
     buildRecurcive(0, vecTriangle);
 }
@@ -116,7 +36,7 @@ void BVHBuilder::travelCycle(glm::vec3& origin, glm::vec3& direction, glm::vec3&
 
 Node* const BVHBuilder::bvhToTexture()
 {
-    int vertexCount = nodeList.size() * 3;
+    int vertexCount = nodeList.size() * 4;
     int sqrtVertCount = ceil(sqrt(vertexCount));
     texSize = Utils::powerOfTwo(sqrtVertCount);
     nodeList.resize(texSize * texSize);
@@ -149,6 +69,7 @@ void BVHBuilder::buildRecurcive(int nodeIndex, std::vector<Triangle> const& vecT
         node.leftChildIsTriangle = true;*/
         // node.childIsTriangle = 3;
         node.leftChild = -vecTriangle[0].getIndex();
+        // node.triIndex//
         node.rightChild = -vecTriangle[1].getIndex();
         return;
     }
@@ -201,8 +122,7 @@ void BVHBuilder::buildRecurcive(int nodeIndex, std::vector<Triangle> const& vecT
 
     if (tempLeftTriangleList.size() == 1) {
         node.leftChild = -tempLeftTriangleList[0].getIndex();
-        // node.childIsTriangle = 1;
-        //  node.leftChildIsTriangle = true;
+        // node.triIndex = tempLeftTriangleList[0].triIndex;
     } else {
         node.leftChild = (int)nodeList.size();
         nodeList.emplace_back();
@@ -211,8 +131,7 @@ void BVHBuilder::buildRecurcive(int nodeIndex, std::vector<Triangle> const& vecT
 
     if (tempRightTriangleList.size() == 1) {
         node.rightChild = -tempRightTriangleList[0].getIndex();
-        // node.childIsTriangle = 2;
-        //  node.rightChildIsTriangle = true;
+        // node.triIndex = tempRightTriangleList[0].triIndex;
     } else {
         node.rightChild = (int)nodeList.size();
         nodeList.emplace_back();
@@ -226,11 +145,11 @@ bool BVHBuilder::travelRecurcive(Node& node, glm::vec3& origin, glm::vec3& direc
         return false;
 
     if (node.rightChild <= 0)
-        if (vecTriangle.at(abs(node.rightChild)).rayIntersect(origin, direction, color, minT))
+        if (vecTriangle.at(std::abs(node.rightChild)).rayIntersect(origin, direction, color, minT))
             return true;
 
     if (node.leftChild <= 0)
-        if (vecTriangle.at(abs(node.leftChild)).rayIntersect(origin, direction, color, minT))
+        if (vecTriangle.at(std::abs(node.leftChild)).rayIntersect(origin, direction, color, minT))
             return true;
 
     if (node.rightChild > 0)
@@ -277,16 +196,49 @@ bool BVHBuilder::travelStack(Node& node, glm::vec3& origin, glm::vec3& direction
         if (select.rightChild <= 0) {
             stack.push(select.rightChild);
         } else {
-            tri = vecTriangle.at(abs(select.rightChild));
+            tri = vecTriangle.at(std::abs(select.rightChild));
             tri.rayIntersect(origin, direction, color, minT);
         }
 
         if (select.leftChild <= 0) {
             stack.push(select.leftChild);
         } else {
-            tri = vecTriangle.at(abs(select.leftChild));
+            tri = vecTriangle.at(std::abs(select.leftChild));
             tri.rayIntersect(origin, direction, color, minT);
         }
     }
     return false;
+}
+
+bool Triangle::rayIntersect(vec3& origin, vec3& direction, vec3& normal, float& mint)
+{
+    vec3 e1 = vertex2 - vertex1;
+    vec3 e2 = vertex3 - vertex1;
+    vec3 P = glm::cross(direction, e2);
+    float det = glm::dot(e1, P);
+
+    if (std::abs(det) < 1e-4)
+        return false;
+
+    float inv_det = 1.0 / det;
+    vec3 T = origin - vertex1;
+    float u = glm::dot(T, P) * inv_det;
+
+    if (u < 0.0 || u > 1.0)
+        return false;
+
+    vec3 Q = glm::cross(T, e1);
+    float v = glm::dot(direction, Q) * inv_det;
+
+    if (v < 0.0 || (v + u) > 1.0)
+        return false;
+
+    float tt = glm::dot(e2, Q) * inv_det;
+
+    if (tt <= 0.0 || tt > mint)
+        return false;
+
+    normal = glm::normalize(glm::cross(e1, e2));
+    mint = tt;
+    return true;
 }

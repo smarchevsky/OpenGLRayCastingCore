@@ -15,7 +15,7 @@ TextureGL::TextureGL(int width, int height, TextureGLType datatype, const void* 
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, width, height, 0, GL_RGB, GL_FLOAT, data);
     } break;
     case TextureGLType::RGBA_32F: {
-        assert(false && "Not supperted texture format");
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, data);
     } break;
     default:
         break;

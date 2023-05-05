@@ -1,4 +1,7 @@
 #pragma once
+
+#include "ModelLoader.h"
+
 #include <functional>
 #include <fwd.hpp> //GLM
 #include <vector>
@@ -49,12 +52,64 @@ public:
     glm::vec3& getMax() { return max; }
 };
 
+struct Triangle {
+    glm::ivec3 triIndex;
+
+private:
+    glm::vec3 vertex1;
+    glm::vec3 vertex2;
+    glm::vec3 vertex3;
+    int index;
+    glm::vec3 center;
+    AABB aabb;
+
+public:
+    Triangle(glm::vec3 vertex1, glm::vec3 vertex2, glm::vec3 vertex3,
+        int index, glm::ivec3 triIndex)
+        : vertex1(vertex1)
+        , vertex2(vertex2)
+        , vertex3(vertex3)
+        , index(index)
+        , triIndex(triIndex)
+    {
+        aabb = genAABB();
+        center = genCenter();
+    }
+
+    Triangle()
+        : Triangle(glm::vec3(0, 0, 0), glm::vec3(0, 0, 0),
+            glm::vec3(0, 0, 0), 0, glm::ivec3(0)) {};
+
+    bool rayIntersect(glm::vec3& origin, glm::vec3& direction, glm::vec3& normal, float& mint);
+
+    glm::vec3& getCenter() { return center; }
+    AABB& getAABB() { return aabb; }
+    int getIndex() { return index; }
+
+    glm::vec3 getCenter() const { return center; }
+    AABB getAABB() const { return aabb; }
+    int getIndex() const { return index; }
+
+private:
+    glm::vec3 genCenter()
+    {
+        glm::vec3 sum = vertex1 + vertex2 + vertex3;
+        glm::vec3 centerDim = sum / 3.0f;
+        return centerDim;
+    }
+
+    AABB genAABB()
+    {
+        return AABB(
+            glm::min(glm::min(vertex1, vertex2), vertex3),
+            glm::max(glm::max(vertex1, vertex2), vertex3));
+    }
+};
+
 struct Node {
-    /*bool leftChildIsTriangle;
-    bool rightChildIsTriangle;*/
-    float childIsTriangle;
-    float leftChild;
-    float rightChild;
+    glm::vec4 triData; // for v1, v2 of left and rightTriangles
+    float leftChild; // used for v0 of left triangle
+    float rightChild; // used for v0 of right triangle
     AABB aabb;
 
     Node()
@@ -62,20 +117,20 @@ struct Node {
         leftChild(0)
         , rightChild(0)
     {
+        constexpr int size = sizeof(*this) / sizeof(float);
     }
 };
 
-struct Triangle;
 struct Node;
 class BVHBuilder {
 public:
     BVHBuilder();
-    void build(std::vector<float> const& vertexRaw);
+    void build(const Model3D& model);
     void travel(glm::vec3& origin, glm::vec3& direction, glm::vec3& color, float& minT);
     void travelCycle(glm::vec3& origin, glm::vec3& direction, glm::vec3& color, float& minT);
     Node* const bvhToTexture();
     int getTextureSideSize();
-    const std::vector<Node> &getNodes();
+    const std::vector<Node>& getNodes();
 
 private:
     void buildRecurcive(int nodeIndex, std::vector<Triangle> const& vecTriangle);

@@ -22,8 +22,7 @@ void ModelLoader::Obj(std::string const& filePath, std::vector<float>& rawVertex
         float* pVertex = &sourceBuffer[vertexIndex * count];
         forBuffer.push_back(pVertex[0]);
         forBuffer.push_back(pVertex[1]);
-        if (count == 3)
-            forBuffer.push_back(pVertex[2]);
+        forBuffer.push_back(pVertex[2]);
     };
 
     std::ifstream stream(Utils::resourceDir + filePath);

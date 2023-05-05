@@ -269,5 +269,5 @@ void main() {
     vec3 col = vec3(-dot(hit.normal, ray.direction));
     color = vec4(col, 1.0);
     
-    // color = vec4(hit.uv, 0., 1.0);
+    color = vec4(hit.uv, 0., 1.0);
 }

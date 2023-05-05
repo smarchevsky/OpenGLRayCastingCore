@@ -19,6 +19,5 @@ public:
 private:
     int width;
     int height;
-    void VertexDataXYZToTexture(int width, int height, const void* data, TextureGLType type);
     uint32_t textureID;
 };

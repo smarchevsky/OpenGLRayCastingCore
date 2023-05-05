@@ -18,6 +18,8 @@ using glm::vec3;
 using glm::vec4;
 using std::vector;
 
+#define LOG(x) std::cout << x << std::endl
+
 constexpr int WinWidth = 2000;
 constexpr int WinHeight = 1000;
 
@@ -45,12 +47,17 @@ TextureGL loadGeometry(BVHBuilder& bvh, std::string const& path, Model3D& outMod
 
     //    assert(false);
 
-    uint32_t vertexCount = vertex.size() / 3; // 3 vertex component x,y,z
-    int sqrtVertexCount = ceil(sqrt(vertexCount)); // for sqrt demension
-    int texWidthPos = Utils::powerOfTwo(sqrtVertexCount); // texture demension sqrt
-    vertex.resize(texWidthPos * texWidthPos * 3, 0.0); // for pack x,y,z to  r,g,b
+    const int textureWidth = 256;
+    const int floatsPerPixel = 3;
 
-    return TextureGL(texWidthPos, texWidthPos, TextureGLType::RGB_32F, vertex.data());
+    int pixelCount = vertex.size() / floatsPerPixel;
+    int textureHeight = Utils::powerOfTwo(((pixelCount - 1) / textureWidth) + 1);
+
+    pixelCount = textureWidth * textureHeight;
+
+    vertex.resize(pixelCount, 0.0);
+
+    return TextureGL(textureWidth, textureHeight, TextureGLType::RGB_32F, vertex.data());
 }
 
 TextureGL BVHNodesToTexture(BVHBuilder& bvh)
@@ -76,7 +83,7 @@ void updateMatrix(glm::mat3& viewToWorld)
 // FPS Camera move
 void cameraMove(vec3& location, glm::mat3 const& viewToWorld)
 {
-    float speed = 1;
+    float speed = 0.4f;
     if (buttinInputKeys[SDLK_w])
         location += viewToWorld * vec3(0, 0, 1) * speed;
 
@@ -194,8 +201,8 @@ int main(int ArgCount, char** Args)
         shaderProgram.setMatrix3x3("viewToWorld", viewToWorld);
         shaderProgram.setVec3("location", location);
         shaderProgram.setVec2("screeResolution", vec2(WinWidth, WinHeight));
-        shaderProgram.setInt("bvhWidth", texNode.getWidth());
-        shaderProgram.setInt("texPosWidth", texPos.getWidth());
+        shaderProgram.setInt2("bvhSize", texNode.getWidth(), texNode.getHeight());
+        shaderProgram.setInt2("texPosSize", texPos.getWidth(), texPos.getHeight());
 
         uint64_t currentTimeStamp = SDL_GetPerformanceCounter();
 

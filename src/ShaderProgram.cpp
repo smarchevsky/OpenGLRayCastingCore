@@ -1,37 +1,39 @@
-#include <fstream>
+#include "ShaderProgram.h"
+#include "Utils.h"
+#include "glad.h" // Opengl function
 #include <array>
+#include <fstream>
+#include <glm.hpp>
 #include <iostream>
 #include <tuple>
-#include <glm.hpp>
-#include "glad.h" // Opengl function
-#include "Utils.h"
-#include "ShaderProgram.h"
 
-ShaderProgram::ShaderProgram(std::string const& vertexShaderPath, std::string const& fragmentShaderPath): programID(-1), texUnitSlotIndex(0)
+ShaderProgram::ShaderProgram(std::string const& vertexShaderPath, std::string const& fragmentShaderPath)
+    : programID(-1)
+    , texUnitSlotIndex(0)
 {
-	using std::make_tuple;
-	using shader = std::tuple<std::string, int, unsigned int>; // <shader source code, shader type, shader id>
-    
-	std::array<shader, 2> shaderCode {
+    using std::make_tuple;
+    using shader = std::tuple<std::string, int, unsigned int>; // <shader source code, shader type, shader id>
+
+    std::array<shader, 2> shaderCode {
         make_tuple(loadShaderByFile(Utils::resourceDir + vertexShaderPath), GL_VERTEX_SHADER, 0),
-        make_tuple(loadShaderByFile(Utils::resourceDir + fragmentShaderPath), GL_FRAGMENT_SHADER, 0) };
+        make_tuple(loadShaderByFile(Utils::resourceDir + fragmentShaderPath), GL_FRAGMENT_SHADER, 0)
+    };
 
     // For check error
-    int  success;
+    int success;
     char infoLog[512];
-    for (shader& shaderItem : shaderCode)
-    {
-        auto& [sourceCode, shaderType, shaderID] = shaderItem;   
+    for (shader& shaderItem : shaderCode) {
+        auto& [sourceCode, shaderType, shaderID] = shaderItem;
         shaderID = glCreateShader(shaderType);
         const char* sourceCodeData = sourceCode.data();
         glShaderSource(shaderID, 1, &sourceCodeData, NULL);
         glCompileShader(shaderID);
         glGetShaderiv(shaderID, GL_COMPILE_STATUS, &success);
 
-        if (!success)
-        {
+        if (!success) {
             glGetShaderInfoLog(shaderID, 512, NULL, infoLog);
-            std::cerr << "Error shader compilation failed:\n" << infoLog << std::endl;
+            std::cerr << "Error shader compilation failed:\n"
+                      << infoLog << std::endl;
         }
     }
     // Create program
@@ -43,10 +45,10 @@ ShaderProgram::ShaderProgram(std::string const& vertexShaderPath, std::string co
     glLinkProgram(programID);
     glGetProgramiv(programID, GL_COMPILE_STATUS, &success);
 
-    if (!success)
-    {
+    if (!success) {
         glGetProgramInfoLog(programID, 512, NULL, infoLog);
-        std::cerr << "Error program compilation failed:\n" << infoLog << std::endl;
+        std::cerr << "Error program compilation failed:\n"
+                  << infoLog << std::endl;
     }
 
     for (shader& shaderItem : shaderCode)
@@ -55,10 +57,10 @@ ShaderProgram::ShaderProgram(std::string const& vertexShaderPath, std::string co
 
 std::string ShaderProgram::loadShaderByFile(std::string const& shaderPath)
 {
-	std::ifstream file(shaderPath);
+    std::ifstream file(shaderPath);
     assert(file.is_open() && "Error open shader file");
-	std::string shaderSource((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-	return shaderSource;
+    std::string shaderSource((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    return shaderSource;
 }
 
 void ShaderProgram::bind()
@@ -107,6 +109,12 @@ void ShaderProgram::setInt(std::string const& intName, int data)
 {
     uint32_t intLocation = glGetUniformLocation(programID, intName.data());
     glUniform1i(intLocation, data);
+}
+
+void ShaderProgram::setInt2(std::string const& intName, int x, int y)
+{
+    uint32_t intLocation = glGetUniformLocation(programID, intName.data());
+    glUniform2i(intLocation, x, y);
 }
 
 int ShaderProgram::getID()

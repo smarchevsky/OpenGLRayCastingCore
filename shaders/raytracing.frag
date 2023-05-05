@@ -8,9 +8,9 @@ uniform vec2 screeResolution;
 uniform mat3 viewToWorld;
 uniform sampler2D texPosition;
 uniform sampler2D texNode;
-uniform int bvhWidth;
-uniform int texPosWidth;
 
+uniform ivec2 bvhSize;
+uniform ivec2 texPosSize;
 
 //------------------- STRUCT AND LOADER BEGIN -----------------------
 struct Triangle
@@ -45,20 +45,20 @@ struct Hit
 };
 
 
-vec2 get2DIndex(int index, int width)
+vec2 get2DIndex(int index,  ivec2 textureSize)
 {
-	int x = index % width;
-    int y = index / width;
-    return vec2(x / float(width), y / float(width));
+	int x = index % textureSize.x;
+    int y = index / textureSize.x;
+    return vec2(x / float(textureSize.x), y / float(textureSize.y));
 }
 
 Node getNode(int index)
 {
 	index = index * 3;
 
-	vec3 integerData = texture(texNode, get2DIndex(index, bvhWidth)).rgb;
-	vec3 aabbMin = texture(texNode, get2DIndex(index + 1, bvhWidth)).rgb;
-	vec3 aabbMax = texture(texNode, get2DIndex(index + 2, bvhWidth)).rgb;
+	vec3 integerData = texture(texNode, get2DIndex(index, bvhSize)).rgb;
+	vec3 aabbMin = texture(texNode, get2DIndex(index + 1, bvhSize)).rgb;
+	vec3 aabbMax = texture(texNode, get2DIndex(index + 2, bvhSize)).rgb;
 
 	Node node;
 	node.leftChild = int(integerData.y);
@@ -72,9 +72,9 @@ Triangle getTriangle(int index)
 {
 	index = index * 3;
 	Triangle triangle;
-	triangle.pos1 = texture(texPosition, get2DIndex(index, texPosWidth)).rgb;
-	triangle.pos2 = texture(texPosition, get2DIndex(index + 1, texPosWidth)).rgb;
-	triangle.pos3 = texture(texPosition, get2DIndex(index + 2, texPosWidth)).rgb;
+	triangle.pos1 = texture(texPosition, get2DIndex(index, texPosSize)).rgb;
+	triangle.pos2 = texture(texPosition, get2DIndex(index + 1, texPosSize)).rgb;
+	triangle.pos3 = texture(texPosition, get2DIndex(index + 2, texPosSize)).rgb;
 	return triangle;
 }
 //------------------- STRUCT AND LOADER END -----------------------

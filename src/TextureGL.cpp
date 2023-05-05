@@ -1,7 +1,7 @@
 #include "TextureGL.h"
 #include "glad.h" // Opengl function loader
-#include <iostream>
 #include <cassert>
+#include <iostream>
 
 TextureGL::TextureGL(int width, int height, TextureGLType datatype, const void* data)
     : width(width)
@@ -9,7 +9,28 @@ TextureGL::TextureGL(int width, int height, TextureGLType datatype, const void* 
 {
     glGenTextures(1, &textureID);
 
-    VertexDataXYZToTexture(width, height, data, datatype);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    switch (datatype) {
+    case TextureGLType::RGB_32F: {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, width, height, 0, GL_RGB, GL_FLOAT, data);
+    } break;
+    case TextureGLType::RGBA_32F: {
+        assert(false && "Not supperted texture format");
+    } break;
+    default:
+        break;
+    }
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    int error = glGetError();
+    if (error)
+        std::cerr << error << std::endl;
+
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 TextureGL::TextureGL(TextureGL&& other)
@@ -37,32 +58,4 @@ void TextureGL::bind()
 TextureGL::~TextureGL()
 {
     glDeleteTextures(1, &textureID);
-}
-
-void TextureGL::VertexDataXYZToTexture(
-    int width, int height,
-    const void* data, TextureGLType type)
-{
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    switch (type) {
-    case TextureGLType::RGB_32F: {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, width, height, 0, GL_RGB, GL_FLOAT, data);
-    } break;
-    case TextureGLType::RGBA_32F: {
-        assert(false && "Not supperted texture format");
-    } break;
-    default:
-        break;
-    }
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-    int error = glGetError();
-    if (error)
-        std::cerr << error << std::endl;
-
-    glBindTexture(GL_TEXTURE_2D, 0);
 }

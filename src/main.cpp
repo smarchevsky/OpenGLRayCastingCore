@@ -29,7 +29,7 @@ std::map<int, bool> buttinInputKeys; // keyboard key
 float yaw = 0.0f; // for cam rotate
 float pitch = 0.0f; // for cam rotate
 
-TextureGL loadGeometry(BVHBuilder& bvh, std::string const& path, Model3D& outModel)
+void loadGeometry(BVHBuilder& bvh, std::string const& path, Model3D& outModel)
 {
     vector<float> vertex;
     vector<float> normal;
@@ -56,8 +56,6 @@ TextureGL loadGeometry(BVHBuilder& bvh, std::string const& path, Model3D& outMod
     pixelCount = TEXTURE_WIDTH * textureHeight;
 
     vertex.resize(pixelCount * floatsPerPixel, 0.0);
-
-    return TextureGL(TEXTURE_WIDTH, textureHeight, TextureGLType::RGB_32F, vertex.data());
 }
 
 TextureGL createIndexTexture(const Model3D& model)
@@ -197,7 +195,7 @@ int main(int ArgCount, char** Args)
     BVHBuilder* bvh = new BVHBuilder(); // Big object
 
     Model3D model;
-    TextureGL texPos = loadGeometry(*bvh, "models/stanford_dragon.obj", model);
+    loadGeometry(*bvh, "models/BullPlane.obj", model);
     TextureGL texNode = BVHNodesToTexture(*bvh);
     TextureGL texIndex = createIndexTexture(model);
     TextureGL texVertArray = createVertexArrayTexture(model);
@@ -219,7 +217,7 @@ int main(int ArgCount, char** Args)
     SDL_Event Event;
     auto keyIsInside = [&Event] { return buttinInputKeys.count(Event.key.keysym.sym); }; // check key inside in buttinInputKeys
 
-    float dtSmooth = 0.00001f;
+    float dtSmooth = 0.f;
     while (true) {
         while (SDL_PollEvent(&Event)) {
             if (Event.type == SDL_QUIT)
@@ -260,8 +258,8 @@ int main(int ArgCount, char** Args)
         shaderProgram.setTextureAI("texNode", texNode);
         shaderProgram.setInt2("texNodeSize", texNode.getWidth(), texNode.getHeight());
 
-        shaderProgram.setTextureAI("texPosition", texPos);
-        shaderProgram.setInt2("texPosSize", texPos.getWidth(), texPos.getHeight());
+        // shaderProgram.setTextureAI("texPosition", texPos);
+        // shaderProgram.setInt2("texPosSize", texPos.getWidth(), texPos.getHeight());
 
         shaderProgram.setTextureAI("texIndices", texIndex);
         shaderProgram.setInt2("texIndicesSize", texIndex.getWidth(), texIndex.getHeight());

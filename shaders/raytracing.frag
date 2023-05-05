@@ -10,8 +10,6 @@ uniform mat3 viewToWorld;
 uniform sampler2D texNode;
 uniform ivec2 texNodeSize;
 
-uniform sampler2D texPosition;
-uniform ivec2 texPosSize;
 
 uniform sampler2D texIndices;
 uniform ivec2 texIndicesSize;
@@ -20,13 +18,6 @@ uniform sampler2D texVertArray;
 uniform ivec2 texVertArraySize;
 
 //------------------- STRUCT AND LOADER BEGIN -----------------------
-struct Triangle
-{
-    // Position
-    vec3 pos1;
-    vec3 pos2;
-    vec3 pos3;
-};
 
 struct Node
 {
@@ -46,8 +37,8 @@ struct Ray
 
 struct Hit
 {
-    vec3 normal;
     vec3 position;
+    vec3 normal;
     vec2 uv;
     bool isHit;
 };
@@ -109,15 +100,6 @@ IndexedTriangle getIndexedTriangle(int triIndex)
 	return triangle;
 }
 
-Triangle getTriangle(int index)
-{
-	index = index * 3;
-	Triangle triangle;
-	triangle.pos1 = texture(texPosition, get2DIndex(index, texPosSize)).rgb;
-	triangle.pos2 = texture(texPosition, get2DIndex(index + 1, texPosSize)).rgb;
-	triangle.pos3 = texture(texPosition, get2DIndex(index + 2, texPosSize)).rgb;
-	return triangle;
-}
 //------------------- STRUCT AND LOADER END -----------------------
 
 //------------------- STACK BEGIN -----------------------
@@ -167,16 +149,16 @@ bool slabs(in Ray ray, in vec3 minB, in vec3 maxB, inout float localMin) {
     return tminf < ray.tEnd && tminf > ray.tStart;
 }
 
-bool isect_tri(inout Ray ray, in Triangle tri, inout Hit hit ) {
-	vec3 e1 = tri.pos2 - tri.pos1;
-	vec3 e2 = tri.pos3 - tri.pos1;
+bool isect_tri(inout Ray ray, in IndexedTriangle tri, inout Hit hit) {
+	vec3 e1 = tri.v1.p - tri.v0.p;
+	vec3 e2 = tri.v2.p - tri.v0.p;
 	vec3 P = cross(ray.direction, e2);
 	float det = dot(e1, P);
 	if (abs(det) < 1e-4)
         return false;
 
 	float inv_det = 1. / det;
-	vec3 T = (ray.origin - tri.pos1);
+	vec3 T = (ray.origin - tri.v0.p);
 	float u = dot(T, P) * inv_det;
 	if (u < 0.0 || u > 1.0)
         return false;
@@ -192,9 +174,10 @@ bool isect_tri(inout Ray ray, in Triangle tri, inout Hit hit ) {
     {
         vec3 c = vec3(u, v, 1.0 - u - v);
         countTI++;
-        hit.normal = normalize(cross(e1, e2));//(tri.norm1 * c.z + tri.norm2 * c.x + tri.norm3 * c.y);
-        //chit.uv = tri.uv1 * c.z + tri.uv2 * c.x + tri.uv3 * c.y;
         hit.position = (ray.origin + ray.direction * tt);
+        hit.normal = normalize(tri.v0.n * c.z + tri.v1.n * c.x + tri.v2.n * c.y);
+        hit.uv = tri.v0.t * c.z + tri.v1.t * c.x + tri.v2.t * c.y;
+
         hit.isHit = true;
         ray.tEnd = tt;
         return true;
@@ -208,7 +191,7 @@ void traceCloseHitV2(inout Ray ray, inout Hit hit)
     stackPush(0);
     hit.isHit = false;
     Node select;
-    Triangle try;
+    IndexedTriangle try;
     float tempt;
 
     while(stackSize() != 0)
@@ -255,13 +238,13 @@ void traceCloseHitV2(inout Ray ray, inout Hit hit)
 
         if(select.rightChild <= 0)
         {
-            try = getTriangle(abs(select.rightChild));
+            try = getIndexedTriangle(abs(select.rightChild));
             isect_tri(ray, try, hit);
         }
 
         if(select.leftChild <= 0)
         {
-            try = getTriangle(abs(select.leftChild));
+            try = getIndexedTriangle(abs(select.leftChild));
             isect_tri(ray, try, hit);
         }
     }
@@ -281,5 +264,10 @@ void main() {
     //traceCloseFor(ray, hit);
     traceCloseHitV2(ray, hit);
     //color = vec4(fragCoord,0.0,1.0);
-    color = vec4(0.5+hit.normal*0.5, 1.0);
+    //color = vec4(0.5+hit.normal*0.5, 1.0);
+
+    vec3 col = vec3(-dot(hit.normal, ray.direction));
+    color = vec4(col, 1.0);
+    
+    // color = vec4(hit.uv, 0., 1.0);
 }

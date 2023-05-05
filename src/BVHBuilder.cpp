@@ -124,7 +124,7 @@ Node* const BVHBuilder::bvhToTexture()
     return nodeList.data();
 }
 
-int BVHBuilder::getNodesSize()
+int BVHBuilder::getTextureSideSize()
 {
     return texSize;
 }

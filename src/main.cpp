@@ -25,14 +25,14 @@ std::map<int, bool> buttinInputKeys; // keyboard key
 float yaw = 0.0f; // for cam rotate
 float pitch = 0.0f; // for cam rotate
 
-TextureGL loadGeometry(BVHBuilder& bvh, std::string const& path)
+TextureGL loadGeometry(BVHBuilder& bvh, std::string const& path, Model3D& outModel)
 {
     vector<float> vertex;
     vector<float> normal;
     vector<float> uv;
 
     ModelLoader::Obj(path, vertex, normal, uv);
-    const auto& model = ModelLoader::toSingleMeshArray(vertex, normal, uv);
+    outModel = ModelLoader::toSingleMeshArray(vertex, normal, uv);
     bvh.build(vertex);
 
     //    for (int i = 0; i < bvh.getNodes().size(); ++i) {
@@ -44,21 +44,20 @@ TextureGL loadGeometry(BVHBuilder& bvh, std::string const& path)
     //    }
 
     //    assert(false);
-    const std::vector<glm::ivec3> triIndices;
 
     uint32_t vertexCount = vertex.size() / 3; // 3 vertex component x,y,z
     int sqrtVertexCount = ceil(sqrt(vertexCount)); // for sqrt demension
     int texWidthPos = Utils::powerOfTwo(sqrtVertexCount); // texture demension sqrt
     vertex.resize(texWidthPos * texWidthPos * 3, 0.0); // for pack x,y,z to  r,g,b
 
-    return TextureGL(texWidthPos, texWidthPos, TextureGLType::VertexDataXYZ, vertex.data());
+    return TextureGL(texWidthPos, texWidthPos, TextureGLType::RGB_32F, vertex.data());
 }
 
 TextureGL BVHNodesToTexture(BVHBuilder& bvh)
 {
     float const* texNodeData = (float*)(bvh.bvhToTexture());
-    int texWidthNode = bvh.getNodesSize();
-    return TextureGL(texWidthNode, texWidthNode, TextureGLType::VertexDataXYZ, texNodeData);
+    int texWidthNode = bvh.getTextureSideSize();
+    return TextureGL(texWidthNode, texWidthNode, TextureGLType::RGB_32F, texNodeData);
 }
 
 // FPS Camera rotate
@@ -123,6 +122,7 @@ int main(int ArgCount, char** Args)
         std::cerr << "Failed to initialize OpenGL context" << std::endl;
         return -1;
     }
+    SDL_GL_SetSwapInterval(0);
 
     std::cout << "OpenGL version " << glGetString(GL_VERSION) << std::endl;
     std::cout << "GLSL version " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
@@ -133,7 +133,9 @@ int main(int ArgCount, char** Args)
 
     // Load geometry, build BVH && and load data to texture
     BVHBuilder* bvh = new BVHBuilder(); // Big object
-    TextureGL texPos = loadGeometry(*bvh, "models/BullPlane.obj");
+
+    Model3D model;
+    TextureGL texPos = loadGeometry(*bvh, "models/BullPlane.obj", model);
     TextureGL texNode = BVHNodesToTexture(*bvh);
     ShaderProgram shaderProgram("shaders/vertex.vert", "shaders/raytracing.frag");
 
@@ -153,6 +155,7 @@ int main(int ArgCount, char** Args)
     SDL_Event Event;
     auto keyIsInside = [&Event] { return buttinInputKeys.count(Event.key.keysym.sym); }; // check key inside in buttinInputKeys
 
+    float dtSmooth = 0.00001f;
     while (true) {
         while (SDL_PollEvent(&Event)) {
             if (Event.type == SDL_QUIT)
@@ -178,13 +181,14 @@ int main(int ArgCount, char** Args)
 
         // Render/Draw
         // Clear the colorbuffer
+
         glViewport(0, 0, WinWidth, WinHeight);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         shaderProgram.bind();
         glBindVertexArray(VAO);
-        // Set shader variable
+
         shaderProgram.setTextureAI("texPosition", texPos);
         shaderProgram.setTextureAI("texNode", texNode);
         shaderProgram.setMatrix3x3("viewToWorld", viewToWorld);
@@ -192,8 +196,16 @@ int main(int ArgCount, char** Args)
         shaderProgram.setVec2("screeResolution", vec2(WinWidth, WinHeight));
         shaderProgram.setInt("bvhWidth", texNode.getWidth());
         shaderProgram.setInt("texPosWidth", texPos.getWidth());
-        // Draw
+
+        uint64_t currentTimeStamp = SDL_GetPerformanceCounter();
+
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         SDL_GL_SwapWindow(window);
+
+        float dt = (float)((SDL_GetPerformanceCounter() - currentTimeStamp)
+            / (float)SDL_GetPerformanceFrequency());
+        dtSmooth = dtSmooth * 0.9f + dt * 0.1f;
+
+        SDL_SetWindowTitle(window.get(), std::to_string(dtSmooth * 1000).c_str());
     }
 }

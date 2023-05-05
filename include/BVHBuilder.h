@@ -104,12 +104,11 @@ private:
             glm::min(glm::min(vertex1, vertex2), vertex3),
             glm::max(glm::max(vertex1, vertex2), vertex3));
     }
-};
+}; // node.triIndex = tempRightTriangleList[0].triIndex;
 
 struct Node {
-    glm::vec4 triData; // for v1, v2 of left and rightTriangles
-    float leftChild; // used for v0 of left triangle
-    float rightChild; // used for v0 of right triangle
+    glm::vec3 leftChild; // x for node index, xyz for triIndex
+    glm::vec3 rightChild;
     AABB aabb;
 
     Node()

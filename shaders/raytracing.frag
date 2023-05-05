@@ -10,9 +10,8 @@ uniform mat3 viewToWorld;
 uniform sampler2D texNode;
 uniform ivec2 texNodeSize;
 
-
-uniform sampler2D texIndices;
-uniform ivec2 texIndicesSize;
+// uniform sampler2D texIndices;
+// uniform ivec2 texIndicesSize;
 
 uniform sampler2D texVertArray;
 uniform ivec2 texVertArraySize;
@@ -80,9 +79,8 @@ struct IndexedTriangle
    Vertex v2;
 };
 
-IndexedTriangle getIndexedTriangle(int triIndex)
+IndexedTriangle getIndexedTriangle(ivec3 triIndices)
 {
-    ivec3 triIndices = ivec3(texture(texIndices, get2DIndex(triIndex, texIndicesSize)).rgb);
     triIndices *= 2;
 
     vec4 data0, data1;
@@ -241,13 +239,13 @@ void traceCloseHitV2(inout Ray ray, inout Hit hit)
 
         if(select.rightChild.x <= 0)
         {
-            try = getIndexedTriangle(abs(select.rightChild.x));
+            try = getIndexedTriangle(abs(select.rightChild));
             isect_tri(ray, try, hit);
         }
 
         if(select.leftChild.x <= 0)
         {
-            try = getIndexedTriangle(abs(select.leftChild.x));
+            try = getIndexedTriangle(abs(select.leftChild));
             isect_tri(ray, try, hit);
         }
     }

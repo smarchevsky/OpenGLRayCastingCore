@@ -65,12 +65,8 @@ void BVHBuilder::buildRecurcive(int nodeIndex, std::vector<Triangle> const& vecT
     node.aabb = tempaabb;
 
     if (vecTriangle.size() == 2) {
-        /*node.rightChildIsTriangle = true;
-        node.leftChildIsTriangle = true;*/
-        // node.childIsTriangle = 3;
-        node.leftChild.x = -vecTriangle[0].getIndex();
-        // node.triIndex//
-        node.rightChild.x = -vecTriangle[1].getIndex();
+        node.leftChild = -vecTriangle[0].triIndex;
+        node.rightChild = -vecTriangle[1].triIndex;
         return;
     }
 
@@ -123,7 +119,7 @@ void BVHBuilder::buildRecurcive(int nodeIndex, std::vector<Triangle> const& vecT
     const auto& tl0 = tempLeftTriangleList[0];
     const auto& tr0 = tempRightTriangleList[0];
     if (tempLeftTriangleList.size() == 1) {
-        node.leftChild.x = -tl0.getIndex();
+        node.leftChild = -tl0.triIndex;
 
     } else {
         node.leftChild.x = (int)nodeList.size();
@@ -132,7 +128,7 @@ void BVHBuilder::buildRecurcive(int nodeIndex, std::vector<Triangle> const& vecT
     }
 
     if (tempRightTriangleList.size() == 1) {
-        node.rightChild.x = -tr0.getIndex();
+        node.rightChild = -tr0.triIndex;
 
     } else {
         node.rightChild.x = (int)nodeList.size();

@@ -18,10 +18,12 @@ using glm::vec3;
 using glm::vec4;
 using std::vector;
 
+constexpr int TEXTURE_WIDTH = 256;
+
 #define LOG(x) std::cout << x << std::endl
 
-constexpr int WinWidth = 2000;
-constexpr int WinHeight = 1000;
+constexpr int WinWidth = 2400;
+constexpr int WinHeight = 1300;
 
 std::map<int, bool> buttinInputKeys; // keyboard key
 float yaw = 0.0f; // for cam rotate
@@ -47,17 +49,70 @@ TextureGL loadGeometry(BVHBuilder& bvh, std::string const& path, Model3D& outMod
 
     //    assert(false);
 
-    const int textureWidth = 256;
     const int floatsPerPixel = 3;
 
     int pixelCount = vertex.size() / floatsPerPixel;
-    int textureHeight = Utils::powerOfTwo(((pixelCount - 1) / textureWidth) + 1);
+    int textureHeight = Utils::powerOfTwo(((pixelCount - 1) / TEXTURE_WIDTH) + 1);
+    pixelCount = TEXTURE_WIDTH * textureHeight;
 
-    pixelCount = textureWidth * textureHeight;
+    vertex.resize(pixelCount * floatsPerPixel, 0.0);
 
-    vertex.resize(pixelCount, 0.0);
+    return TextureGL(TEXTURE_WIDTH, textureHeight, TextureGLType::RGB_32F, vertex.data());
+}
 
-    return TextureGL(textureWidth, textureHeight, TextureGLType::RGB_32F, vertex.data());
+TextureGL createIndexTexture(const Model3D& model)
+{
+    const int floatsPerPixel = 3;
+    const auto format = TextureGLType::RGB_32F;
+
+    // auto indices = model.triangles;
+    std::vector<float> indices;
+    indices.reserve(model.triangles.size() * 3);
+    for (const auto& t : model.triangles) {
+        indices.push_back((float)t[0]);
+        indices.push_back((float)t[1]);
+        indices.push_back((float)t[2]);
+    }
+
+    int pixelCount = indices.size() / floatsPerPixel;
+    int textureHeight = Utils::powerOfTwo(((pixelCount - 1) / TEXTURE_WIDTH) + 1);
+    pixelCount = TEXTURE_WIDTH * textureHeight;
+
+    indices.resize(pixelCount * floatsPerPixel, 0.0);
+
+    return TextureGL(TEXTURE_WIDTH, textureHeight, format, indices.data());
+}
+
+TextureGL createVertexArrayTexture(const Model3D& model)
+{
+    const int floatsPerPixel = 3;
+    const auto format = TextureGLType::RGB_32F;
+
+    // auto indices = model.triangles;
+    std::vector<float> vertexArray;
+    vertexArray.reserve(model.vertices.size() * 9);
+
+    for (const auto& v : model.vertices) {
+        vertexArray.push_back(v.position.x);
+        vertexArray.push_back(v.position.y);
+        vertexArray.push_back(v.position.z);
+
+        vertexArray.push_back(v.normal.x);
+        vertexArray.push_back(v.normal.y);
+        vertexArray.push_back(v.normal.z);
+
+        vertexArray.push_back(v.uv.x);
+        vertexArray.push_back(v.uv.y);
+        vertexArray.push_back(0);
+    }
+
+    int pixelCount = vertexArray.size() / floatsPerPixel;
+    int textureHeight = Utils::powerOfTwo(((pixelCount - 1) / TEXTURE_WIDTH) + 1);
+    pixelCount = TEXTURE_WIDTH * textureHeight;
+
+    vertexArray.resize(pixelCount * floatsPerPixel, 0.0);
+
+    return TextureGL(TEXTURE_WIDTH, textureHeight, format, vertexArray.data());
 }
 
 TextureGL BVHNodesToTexture(BVHBuilder& bvh)
@@ -83,7 +138,7 @@ void updateMatrix(glm::mat3& viewToWorld)
 // FPS Camera move
 void cameraMove(vec3& location, glm::mat3 const& viewToWorld)
 {
-    float speed = 0.4f;
+    float speed = 0.1f;
     if (buttinInputKeys[SDLK_w])
         location += viewToWorld * vec3(0, 0, 1) * speed;
 
@@ -142,8 +197,10 @@ int main(int ArgCount, char** Args)
     BVHBuilder* bvh = new BVHBuilder(); // Big object
 
     Model3D model;
-    TextureGL texPos = loadGeometry(*bvh, "models/BullPlane.obj", model);
+    TextureGL texPos = loadGeometry(*bvh, "models/stanford_dragon.obj", model);
     TextureGL texNode = BVHNodesToTexture(*bvh);
+    TextureGL texIndex = createIndexTexture(model);
+    TextureGL texVertArray = createVertexArrayTexture(model);
     ShaderProgram shaderProgram("shaders/vertex.vert", "shaders/raytracing.frag");
 
     // Variable for camera
@@ -196,13 +253,21 @@ int main(int ArgCount, char** Args)
         shaderProgram.bind();
         glBindVertexArray(VAO);
 
-        shaderProgram.setTextureAI("texPosition", texPos);
-        shaderProgram.setTextureAI("texNode", texNode);
         shaderProgram.setMatrix3x3("viewToWorld", viewToWorld);
         shaderProgram.setVec3("location", location);
         shaderProgram.setVec2("screeResolution", vec2(WinWidth, WinHeight));
-        shaderProgram.setInt2("bvhSize", texNode.getWidth(), texNode.getHeight());
+
+        shaderProgram.setTextureAI("texNode", texNode);
+        shaderProgram.setInt2("texNodeSize", texNode.getWidth(), texNode.getHeight());
+
+        shaderProgram.setTextureAI("texPosition", texPos);
         shaderProgram.setInt2("texPosSize", texPos.getWidth(), texPos.getHeight());
+
+        shaderProgram.setTextureAI("texIndices", texIndex);
+        shaderProgram.setInt2("texIndicesSize", texIndex.getWidth(), texIndex.getHeight());
+
+        shaderProgram.setTextureAI("texVertArray", texVertArray);
+        shaderProgram.setInt2("texVertArraySize", texVertArray.getWidth(), texVertArray.getHeight());
 
         uint64_t currentTimeStamp = SDL_GetPerformanceCounter();
 

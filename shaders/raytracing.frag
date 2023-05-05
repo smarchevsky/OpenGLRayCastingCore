@@ -6,11 +6,18 @@ out vec4 color;
 uniform vec3 location;
 uniform vec2 screeResolution;
 uniform mat3 viewToWorld;
-uniform sampler2D texPosition;
-uniform sampler2D texNode;
 
-uniform ivec2 bvhSize;
+uniform sampler2D texNode;
+uniform ivec2 texNodeSize;
+
+uniform sampler2D texPosition;
 uniform ivec2 texPosSize;
+
+uniform sampler2D texIndices;
+uniform ivec2 texIndicesSize;
+
+uniform sampler2D texVertArray;
+uniform ivec2 texVertArraySize;
 
 //------------------- STRUCT AND LOADER BEGIN -----------------------
 struct Triangle
@@ -20,6 +27,7 @@ struct Triangle
     vec3 pos2;
     vec3 pos3;
 };
+
 struct Node
 {
     int leftChild;
@@ -56,9 +64,9 @@ Node getNode(int index)
 {
 	index = index * 3;
 
-	vec3 integerData = texture(texNode, get2DIndex(index, bvhSize)).rgb;
-	vec3 aabbMin = texture(texNode, get2DIndex(index + 1, bvhSize)).rgb;
-	vec3 aabbMax = texture(texNode, get2DIndex(index + 2, bvhSize)).rgb;
+	vec3 integerData = texture(texNode, get2DIndex(index, texNodeSize)).rgb;
+	vec3 aabbMin = texture(texNode, get2DIndex(index + 1, texNodeSize)).rgb;
+	vec3 aabbMax = texture(texNode, get2DIndex(index + 2, texNodeSize)).rgb;
 
 	Node node;
 	node.leftChild = int(integerData.y);
@@ -66,6 +74,39 @@ Node getNode(int index)
 	node.aabbMin = aabbMin;
 	node.aabbMax = aabbMax;
 	return node;
+}
+
+struct Vertex {
+    vec3 p;
+    vec3 n;
+    vec2 t;
+};
+
+struct IndexedTriangle
+{
+   Vertex v0;
+   Vertex v1;
+   Vertex v2;
+};
+
+IndexedTriangle getIndexedTriangle(int triIndex)
+{
+    ivec3 triIndices = ivec3(texture(texIndices, get2DIndex(triIndex, texIndicesSize)).rgb);
+    triIndices *= 3;
+
+    IndexedTriangle triangle;
+    triangle.v0.p = texture(texVertArray, get2DIndex(triIndices.r, texVertArraySize)).rgb;
+    triangle.v0.n = texture(texVertArray, get2DIndex(triIndices.r + 1, texVertArraySize)).rgb;
+    triangle.v0.t = texture(texVertArray, get2DIndex(triIndices.r + 2, texVertArraySize)).rg;
+
+    triangle.v1.p = texture(texVertArray, get2DIndex(triIndices.g, texVertArraySize)).rgb;
+    triangle.v1.n = texture(texVertArray, get2DIndex(triIndices.g + 1, texVertArraySize)).rgb;
+    triangle.v1.t = texture(texVertArray, get2DIndex(triIndices.g + 2, texVertArraySize)).rg;
+
+    triangle.v2.p = texture(texVertArray, get2DIndex(triIndices.b, texVertArraySize)).rgb;
+    triangle.v2.n = texture(texVertArray, get2DIndex(triIndices.b + 1, texVertArraySize)).rgb;
+    triangle.v2.t = texture(texVertArray, get2DIndex(triIndices.b + 2, texVertArraySize)).rg;
+	return triangle;
 }
 
 Triangle getTriangle(int index)

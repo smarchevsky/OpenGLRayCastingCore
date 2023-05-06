@@ -149,8 +149,8 @@ bool isect_tri(inout Ray ray, in IndexedTriangle tri, inout Hit hit) {
 
 	vec3 P = cross(ray.direction, e2);
 	float det = dot(e1, P);
-	if (abs(det) < 1e-4)
-        return false;
+        // if (abs(det) < 1e-10) // small parts can disappear here
+        // return false;
 
 	float inv_det = 1. / det;
 	vec3 T = (ray.origin - tri.v0.p);

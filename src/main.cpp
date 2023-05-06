@@ -60,25 +60,30 @@ void loadGeometry(BVHBuilder& bvh, std::string const& path, Model3D& model)
 
 TextureGL createIndexTexture(const Model3D& model)
 {
-    const int floatsPerPixel = 3;
-    const auto format = TextureGLType::RGB_32F;
+    const int floatsPerPixel = 4;
+    const auto format = TextureGLType::RGBA_32F;
 
-    // auto indices = model.triangles;
-    std::vector<float> indices;
-    indices.reserve(model.triangles.size() * 3);
-    for (const auto& t : model.triangles) {
-        indices.push_back((float)t[0]);
-        indices.push_back((float)t[1]);
-        indices.push_back((float)t[2]);
+    int numFloatsInIndex = 4;
+    int numOfFloatsInIndexArray = model.triangles.size() * numFloatsInIndex; // triangle size is 3, align to 4
+    int indexPixelCount = numOfFloatsInIndexArray / floatsPerPixel;
+
+    int indexTextureHeight = ((indexPixelCount - 1) / TEXTURE_WIDTH) + 1;
+    indexTextureHeight = Utils::powerOfTwo(indexTextureHeight);
+
+    indexPixelCount = TEXTURE_WIDTH * indexTextureHeight;
+    numOfFloatsInIndexArray = indexPixelCount * floatsPerPixel;
+
+    std::vector<float> indexBuffer;
+    indexBuffer.resize(numOfFloatsInIndexArray, 0);
+    for (int i = 0; i < model.triangles.size(); ++i) {
+        const auto& t = model.triangles[i];
+        indexBuffer[i * numFloatsInIndex + 0] = (float)t[0];
+        indexBuffer[i * numFloatsInIndex + 1] = (float)t[1];
+        indexBuffer[i * numFloatsInIndex + 2] = (float)t[2];
+        indexBuffer[i * numFloatsInIndex + 3] = 0.f;
     }
 
-    int pixelCount = indices.size() / floatsPerPixel;
-    int textureHeight = Utils::powerOfTwo(((pixelCount - 1) / TEXTURE_WIDTH) + 1);
-    pixelCount = TEXTURE_WIDTH * textureHeight;
-
-    indices.resize(pixelCount * floatsPerPixel, 0.0);
-
-    return TextureGL(TEXTURE_WIDTH, textureHeight, format, indices.data());
+    return TextureGL(TEXTURE_WIDTH, indexTextureHeight, format, indexBuffer.data());
 }
 
 TextureGL createVertexArrayTexture(const Model3D& model)
@@ -86,29 +91,35 @@ TextureGL createVertexArrayTexture(const Model3D& model)
     const int floatsPerPixel = 4;
     const auto format = TextureGLType::RGBA_32F;
 
-    // auto indices = model.triangles;
-    std::vector<float> vertexArray;
-    vertexArray.reserve(model.vertices.size() * 9);
+    int numFloatsInVertex = 8;
+    int numOfFloatsInVertexArray = model.vertices.size() * numFloatsInVertex;
+    int vertexPixelCount = numOfFloatsInVertexArray / floatsPerPixel;
 
-    for (const auto& v : model.vertices) {
-        vertexArray.push_back(v.position.x);
-        vertexArray.push_back(v.position.y);
-        vertexArray.push_back(v.position.z);
-        vertexArray.push_back(v.normal.x);
+    int vertexTextureHeight = ((vertexPixelCount - 1) / TEXTURE_WIDTH) + 1;
+    vertexTextureHeight = Utils::powerOfTwo(vertexTextureHeight);
 
-        vertexArray.push_back(v.normal.y);
-        vertexArray.push_back(v.normal.z);
-        vertexArray.push_back(v.uv.x);
-        vertexArray.push_back(v.uv.y);
+    vertexPixelCount = TEXTURE_WIDTH * vertexTextureHeight;
+    numOfFloatsInVertexArray = vertexPixelCount * floatsPerPixel;
+
+    std::vector<float> vertexArrayBuffer;
+    vertexArrayBuffer.resize(numOfFloatsInVertexArray, 0);
+    for (int i = 0; i < model.vertices.size(); ++i) {
+        const auto& v = model.vertices[i];
+        // first pixel
+        vertexArrayBuffer[i * numFloatsInVertex + 0] = v.position.x;
+        vertexArrayBuffer[i * numFloatsInVertex + 1] = v.position.y;
+        vertexArrayBuffer[i * numFloatsInVertex + 2] = v.position.z;
+        vertexArrayBuffer[i * numFloatsInVertex + 3] = v.normal.x;
+
+        // second pixel
+        vertexArrayBuffer[i * numFloatsInVertex + 4] = v.normal.y;
+        vertexArrayBuffer[i * numFloatsInVertex + 5] = v.normal.z;
+        vertexArrayBuffer[i * numFloatsInVertex + 6] = v.uv.x;
+        vertexArrayBuffer[i * numFloatsInVertex + 7] = v.uv.y;
     }
 
-    int pixelCount = vertexArray.size() / floatsPerPixel;
-    int textureHeight = Utils::powerOfTwo(((pixelCount - 1) / TEXTURE_WIDTH) + 1);
-    pixelCount = TEXTURE_WIDTH * textureHeight;
 
-    vertexArray.resize(pixelCount * floatsPerPixel, 0.0);
-
-    return TextureGL(TEXTURE_WIDTH, textureHeight, format, vertexArray.data());
+    return TextureGL(TEXTURE_WIDTH, vertexTextureHeight, format, vertexArrayBuffer.data());
 }
 
 TextureGL BVHNodesToTexture(BVHBuilder& bvh)

@@ -108,7 +108,7 @@ private:
 
 struct Node {
     // glm::vec4 dummy; // x for node index, xyz for triIndex
-    float leftChild, rightChild;
+    int leftChild, rightChild;
     AABB aabb;
 
     Node()

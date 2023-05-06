@@ -7,9 +7,6 @@ uniform vec3 location;
 uniform vec2 screeResolution;
 uniform mat3 viewToWorld;
 
-uniform sampler2D texNode;
-uniform ivec2 texNodeSize;
-
 uniform sampler2D texGeometry;
 uniform ivec2 texGeometrySize;
 
@@ -49,14 +46,13 @@ vec2 get2DIndex(int index,  ivec2 textureSize)
 
 Node getNode(int index)
 {
-	index = index * 2;
-    vec4 data0 = texture(texNode, get2DIndex(index + 0, texNodeSize)).rgba;
-    vec4 data1 = texture(texNode, get2DIndex(index + 1, texNodeSize)).rgba;
+    vec4 data0 = texture(texGeometry, get2DIndex(index + 0, texGeometrySize)).rgba;
+    vec4 data1 = texture(texGeometry, get2DIndex(index + 1, texGeometrySize)).rgba;
 
 	Node node;
 
-	node.leftChild = int(data0.r);
-	node.rightChild = int(data0.g);
+        node.leftChild = floatBitsToInt(data0.r);
+        node.rightChild = floatBitsToInt(data0.g);
 	node.aabbMin = vec3(data0.ba, data1.r);
 	node.aabbMax = data1.gba;
 	return node;
@@ -77,8 +73,7 @@ struct IndexedTriangle
 
 IndexedTriangle getIndexedTriangle(int triIndex)
 {
-    ivec3 triIndices = ivec3(texture(texGeometry, get2DIndex(triIndex, texGeometrySize)).rgb);
-    //triIndices *= 2;
+    ivec3 triIndices = floatBitsToInt(texture(texGeometry, get2DIndex(triIndex, texGeometrySize)).rgb);
 
     vec4 data0, data1;
     IndexedTriangle triangle;
@@ -95,7 +90,7 @@ IndexedTriangle getIndexedTriangle(int triIndex)
     data1 = texture(texGeometry, get2DIndex(triIndices.b + 1, texGeometrySize)).rgba;
     triangle.v2.p = data0.rgb; triangle.v2.n = vec3(data0.a, data1.rg); triangle.v2.t = data1.ba;
 
-	return triangle;
+    return triangle;
 }
 
 //------------------- STRUCT AND LOADER END -----------------------
@@ -238,13 +233,13 @@ void traceCloseHitV2(inout Ray ray, inout Hit hit)
 
         if(select.rightChild <= 0)
         {
-            try = getIndexedTriangle(abs(select.rightChild));
+            try = getIndexedTriangle(-select.rightChild);
             isect_tri(ray, try, hit);
         }
 
         if(select.leftChild <= 0)
         {
-            try = getIndexedTriangle(abs(select.leftChild));
+            try = getIndexedTriangle(-select.leftChild);
             isect_tri(ray, try, hit);
         }
     }

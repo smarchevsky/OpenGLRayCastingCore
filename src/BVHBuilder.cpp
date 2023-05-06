@@ -49,8 +49,6 @@ int BVHBuilder::getTextureSideSize()
     return texSize;
 }
 
-
-
 void BVHBuilder::buildRecurcive(int nodeIndex, std::vector<Triangle> const& vecTriangle)
 {
     // Build Bpun box for triangles in vecTriangle
@@ -139,11 +137,11 @@ bool BVHBuilder::travelRecurcive(Node& node, glm::vec3& origin, glm::vec3& direc
     if (!node.aabb.rayIntersect(origin, direction, minT))
         return false;
 
-    if (node.rightChild <= 0)
+    if (node.rightChild <= 0) // is triangle
         if (vecTriangle.at(std::abs(node.rightChild)).rayIntersect(origin, direction, color, minT))
             return true;
 
-    if (node.leftChild <= 0)
+    if (node.leftChild <= 0) // is triangle
         if (vecTriangle.at(std::abs(node.leftChild)).rayIntersect(origin, direction, color, minT))
             return true;
 

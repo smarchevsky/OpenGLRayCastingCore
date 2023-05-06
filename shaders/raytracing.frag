@@ -36,28 +36,6 @@ struct Hit
     bool isHit;
 };
 
-
-vec2 get2DIndex(int index,  ivec2 textureSize)
-{
-    int x = index % textureSize.x;
-    int y = index / textureSize.x;
-    return vec2(x / float(textureSize.x), y / float(textureSize.y));
-}
-
-Node getNode(int index)
-{
-    vec4 data0 = texture(texGeometry, get2DIndex(index + 0, texGeometrySize)).rgba;
-    vec4 data1 = texture(texGeometry, get2DIndex(index + 1, texGeometrySize)).rgba;
-
-	Node node;
-
-        node.leftChild = floatBitsToInt(data0.r);
-        node.rightChild = floatBitsToInt(data0.g);
-	node.aabbMin = vec3(data0.ba, data1.r);
-	node.aabbMax = data1.gba;
-	return node;
-}
-
 struct Vertex {
     vec3 p;
     vec3 n;
@@ -71,23 +49,47 @@ struct IndexedTriangle
    Vertex v2;
 };
 
+vec4 getData(int index)
+{
+    int x = index % texGeometrySize.x;
+    int y = index / texGeometrySize.x;
+    vec2 uvPos = vec2(x / float(texGeometrySize.x), y / float(texGeometrySize.y));
+    return texture(texGeometry, uvPos);
+}
+
+Node getNode(int index)
+{
+    vec4 data0 = getData(index + 0);
+    vec4 data1 = getData(index + 1);
+
+	Node node;
+
+        node.leftChild = floatBitsToInt(data0.r);
+        node.rightChild = floatBitsToInt(data0.g);
+	node.aabbMin = vec3(data0.ba, data1.r);
+	node.aabbMax = data1.gba;
+	return node;
+}
+
+
+
 IndexedTriangle getIndexedTriangle(int triIndex)
 {
-    ivec3 triIndices = floatBitsToInt(texture(texGeometry, get2DIndex(triIndex, texGeometrySize)).rgb);
+    ivec3 triIndices = floatBitsToInt(getData(triIndex).rgb);
 
     vec4 data0, data1;
     IndexedTriangle triangle;
 
-    data0 = texture(texGeometry, get2DIndex(triIndices.r, texGeometrySize)).rgba;
-    data1 = texture(texGeometry, get2DIndex(triIndices.r + 1, texGeometrySize)).rgba;
+    data0 = getData(triIndices.r);
+    data1 = getData(triIndices.r + 1);
     triangle.v0.p = data0.rgb; triangle.v0.n = vec3(data0.a, data1.rg); triangle.v0.t = data1.ba;
    
-    data0 = texture(texGeometry, get2DIndex(triIndices.g, texGeometrySize)).rgba;
-    data1 = texture(texGeometry, get2DIndex(triIndices.g + 1, texGeometrySize)).rgba;
+    data0 = getData(triIndices.g);
+    data1 = getData(triIndices.g + 1);
     triangle.v1.p = data0.rgb; triangle.v1.n = vec3(data0.a, data1.rg); triangle.v1.t = data1.ba;
    
-    data0 = texture(texGeometry, get2DIndex(triIndices.b, texGeometrySize)).rgba;
-    data1 = texture(texGeometry, get2DIndex(triIndices.b + 1, texGeometrySize)).rgba;
+    data0 = getData(triIndices.b);
+    data1 = getData(triIndices.b + 1);
     triangle.v2.p = data0.rgb; triangle.v2.n = vec3(data0.a, data1.rg); triangle.v2.t = data1.ba;
 
     return triangle;

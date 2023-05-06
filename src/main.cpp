@@ -38,24 +38,6 @@ void loadGeometry(BVHBuilder& bvh, std::string const& path, Model3D& model)
     ModelLoader::Obj(path, vertex, normal, uv);
     model = ModelLoader::toSingleMeshArray(vertex, normal, uv);
     bvh.build(model);
-
-    //    for (int i = 0; i < bvh.getNodes().size(); ++i) {
-    //        const auto& n = bvh.getNodes()[i];
-    //        std::cout << "Node: " << i
-    //                  << "\t leftChild: " << n.leftChild
-    //                  << "\t rightChild: " << n.rightChild
-    //                  << std::endl;
-    //    }
-
-    //    assert(false);
-
-    const int floatsPerPixel = 3;
-
-    int pixelCount = vertex.size() / floatsPerPixel;
-    int textureHeight = Utils::powerOfTwo(((pixelCount - 1) / TEXTURE_WIDTH) + 1);
-    pixelCount = TEXTURE_WIDTH * textureHeight;
-
-    vertex.resize(pixelCount * floatsPerPixel, 0.0);
 }
 
 TextureGL createGeometryTexture(const BVHBuilder& bvh, const Model3D& model)
@@ -87,8 +69,8 @@ TextureGL createGeometryTexture(const BVHBuilder& bvh, const Model3D& model)
     int numOfFloatsInVertexArray = model.vertices.size() * nFloatsInVertex;
     int vertexPixelCount = numOfFloatsInVertexArray / floatsPerPixel;
     int vertexTextureHeight = ((vertexPixelCount - 1) / TEXTURE_WIDTH) + 1;
-    vertexPixelCount = TEXTURE_WIDTH * vertexTextureHeight;
-    // numOfFloatsInVertexArray = vertexPixelCount * floatsPerPixel;
+    // vertexPixelCount = TEXTURE_WIDTH * vertexTextureHeight;
+    //  numOfFloatsInVertexArray = vertexPixelCount * floatsPerPixel;
 
     int textureHeight = Utils::powerOfTwo(
         nodeTextureHeight + indexTextureHeight + vertexTextureHeight);

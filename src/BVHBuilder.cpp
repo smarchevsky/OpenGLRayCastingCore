@@ -24,31 +24,6 @@ void BVHBuilder::build(const Model3D& model)
     buildRecurcive(0, vecTriangle);
 }
 
-void BVHBuilder::travel(glm::vec3& origin, glm::vec3& direction, glm::vec3& color, float& minT)
-{
-    travelRecurcive(nodeList[0], origin, direction, color, minT);
-}
-
-void BVHBuilder::travelCycle(glm::vec3& origin, glm::vec3& direction, glm::vec3& color, float& minT)
-{
-    travelStack(nodeList[0], origin, direction, color, minT);
-}
-
-Node* const BVHBuilder::bvhToTexture()
-{
-    int vertexCount = nodeList.size() * 3;
-    int sqrtVertCount = ceil(sqrt(vertexCount));
-    texSize = Utils::powerOfTwo(sqrtVertCount);
-    nodeList.resize(texSize * texSize);
-
-    return nodeList.data();
-}
-
-int BVHBuilder::getTextureSideSize()
-{
-    return texSize;
-}
-
 void BVHBuilder::buildRecurcive(int nodeIndex, std::vector<Triangle> const& vecTriangle)
 {
     // Build Bpun box for triangles in vecTriangle
@@ -89,7 +64,7 @@ void BVHBuilder::buildRecurcive(int nodeIndex, std::vector<Triangle> const& vecT
     std::vector<Triangle> tempLeftTriangleList;
     std::vector<Triangle> tempRightTriangleList;
 
-    auto splitByAxis = [&tempLeftTriangleList, &tempRightTriangleList, &midPoint, &vecTriangle](std::function<float(vec3 const& point)> getElement) {
+    auto splitByAxis = [&](std::function<float(vec3 const& point)> getElement) {
         for (Triangle const& tri : vecTriangle) {
             if (getElement(tri.getCenter()) < getElement(midPoint))
                 tempLeftTriangleList.push_back(tri);
@@ -130,108 +105,4 @@ void BVHBuilder::buildRecurcive(int nodeIndex, std::vector<Triangle> const& vecT
         nodeList.emplace_back();
         buildRecurcive(nodeList.size() - 1, tempRightTriangleList);
     }
-}
-
-bool BVHBuilder::travelRecurcive(Node& node, glm::vec3& origin, glm::vec3& direction, glm::vec3& color, float& minT)
-{
-    if (!node.aabb.rayIntersect(origin, direction, minT))
-        return false;
-
-    if (node.rightChild <= 0) // is triangle
-        if (vecTriangle.at(std::abs(node.rightChild)).rayIntersect(origin, direction, color, minT))
-            return true;
-
-    if (node.leftChild <= 0) // is triangle
-        if (vecTriangle.at(std::abs(node.leftChild)).rayIntersect(origin, direction, color, minT))
-            return true;
-
-    if (node.rightChild > 0)
-        if (travelRecurcive(nodeList[node.rightChild], origin, direction, color, minT))
-            return true;
-
-    if (node.leftChild > 0)
-        if (travelRecurcive(nodeList[node.leftChild], origin, direction, color, minT))
-            return true;
-
-    return false;
-}
-
-bool BVHBuilder::travelStack(Node& node, glm::vec3& origin, glm::vec3& direction, glm::vec3& color, float& minT)
-{
-    std::stack<int> stack;
-    stack.push(0);
-    Node select;
-    Triangle tri;
-    float tempt;
-
-    while (stack.size() != 0) {
-        select = nodeList.at(stack.top());
-        stack.pop();
-
-        if (!select.aabb.rayIntersect(origin, direction, minT))
-            continue;
-
-        if (select.rightChild > 0 && select.leftChild > 0) {
-            float leftMinT = 0;
-            float rightMinT = 0;
-            Node right = nodeList.at(select.rightChild);
-            Node left = nodeList.at(select.leftChild);
-            bool rightI = right.aabb.rayIntersect(origin, direction, rightMinT);
-            bool leftI = left.aabb.rayIntersect(origin, direction, rightMinT);
-
-            if (rightI)
-                stack.push(select.rightChild);
-            if (leftI)
-                stack.push(select.leftChild);
-            continue;
-        }
-
-        if (select.rightChild <= 0) {
-            stack.push(select.rightChild);
-        } else {
-            tri = vecTriangle.at(std::abs(select.rightChild));
-            tri.rayIntersect(origin, direction, color, minT);
-        }
-
-        if (select.leftChild <= 0) {
-            stack.push(select.leftChild);
-        } else {
-            tri = vecTriangle.at(std::abs(select.leftChild));
-            tri.rayIntersect(origin, direction, color, minT);
-        }
-    }
-    return false;
-}
-
-bool Triangle::rayIntersect(vec3& origin, vec3& direction, vec3& normal, float& mint)
-{
-    vec3 e1 = vertex2 - vertex1;
-    vec3 e2 = vertex3 - vertex1;
-    vec3 P = glm::cross(direction, e2);
-    float det = glm::dot(e1, P);
-
-    if (std::abs(det) < 1e-4)
-        return false;
-
-    float inv_det = 1.0 / det;
-    vec3 T = origin - vertex1;
-    float u = glm::dot(T, P) * inv_det;
-
-    if (u < 0.0 || u > 1.0)
-        return false;
-
-    vec3 Q = glm::cross(T, e1);
-    float v = glm::dot(direction, Q) * inv_det;
-
-    if (v < 0.0 || (v + u) > 1.0)
-        return false;
-
-    float tt = glm::dot(e2, Q) * inv_det;
-
-    if (tt <= 0.0 || tt > mint)
-        return false;
-
-    normal = glm::normalize(glm::cross(e1, e2));
-    mint = tt;
-    return true;
 }

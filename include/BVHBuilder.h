@@ -53,8 +53,6 @@ public:
 };
 
 struct Triangle {
-    glm::ivec3 triIndex;
-
 private:
     glm::vec3 vertex1;
     glm::vec3 vertex2;
@@ -70,7 +68,6 @@ public:
         , vertex2(vertex2)
         , vertex3(vertex3)
         , index(index)
-        , triIndex(triIndex)
     {
         aabb = genAABB();
         center = genCenter();
@@ -79,8 +76,6 @@ public:
     Triangle()
         : Triangle(glm::vec3(0, 0, 0), glm::vec3(0, 0, 0),
             glm::vec3(0, 0, 0), 0, glm::ivec3(0)) {};
-
-    bool rayIntersect(glm::vec3& origin, glm::vec3& direction, glm::vec3& normal, float& mint);
 
     glm::vec3& getCenter() { return center; }
     AABB& getAABB() { return aabb; }
@@ -104,16 +99,14 @@ private:
             glm::min(glm::min(vertex1, vertex2), vertex3),
             glm::max(glm::max(vertex1, vertex2), vertex3));
     }
-}; // node.triIndex = tempRightTriangleList[0].triIndex;
+};
 
 struct Node {
-    // glm::vec4 dummy; // x for node index, xyz for triIndex
     int leftChild, rightChild;
     AABB aabb;
 
     Node()
-        : /*leftChildIsTriangle(false), rightChildIsTriangle(false)*/ // childIsTriangle(0)
-        leftChild(0)
+        : leftChild(0)
         , rightChild(0)
     {
         constexpr int size = sizeof(*this) / sizeof(float);
@@ -125,16 +118,12 @@ class BVHBuilder {
 public:
     BVHBuilder();
     void build(const Model3D& model);
-    void travel(glm::vec3& origin, glm::vec3& direction, glm::vec3& color, float& minT);
-    void travelCycle(glm::vec3& origin, glm::vec3& direction, glm::vec3& color, float& minT);
-    Node* const bvhToTexture();
-    int getTextureSideSize();
+
     const std::vector<Node>& getNodes() const { return nodeList; }
 
 private:
     void buildRecurcive(int nodeIndex, std::vector<Triangle> const& vecTriangle);
-    bool travelRecurcive(Node& node, glm::vec3& origin, glm::vec3& direction, glm::vec3& color, float& minT);
-    bool travelStack(Node& node, glm::vec3& origin, glm::vec3& direction, glm::vec3& color, float& minT);
+
     int texSize;
     std::vector<Node> nodeList;
     std::vector<Triangle> vecTriangle;

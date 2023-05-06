@@ -109,16 +109,51 @@ TextureGL createGeometryTexture(const Model3D& model)
 
     int textureHeight = Utils::powerOfTwo(indexTextureHeight + vertexTextureHeight);
 
+    LOG("IndexTextureHeight: " << indexTextureHeight
+                               << ", VertexTextureHeight: " << vertexTextureHeight
+                               << ", OverallTextureHeight: " << textureHeight);
+
     ////////////////////// VERTEX DATA ///////////////////////
 
     return TextureGL(TEXTURE_WIDTH, textureHeight, format, buffer.data());
 }
 
-TextureGL BVHNodesToTexture(BVHBuilder& bvh)
+TextureGL BVHNodesToTexture(const BVHBuilder& bvh)
 {
-    float const* texNodeData = (float*)(bvh.bvhToTexture());
-    int texWidthNode = bvh.getTextureSideSize();
-    return TextureGL(texWidthNode, texWidthNode, TextureGLType::RGBA_32F, texNodeData);
+    constexpr int floatsPerPixel = 4;
+    constexpr auto format = TextureGLType::RGBA_32F;
+
+    constexpr int numFloatsInNode = 8;
+    // constexpr int numOfPixelPerNode = numFloatsInNode / floatsPerPixel;
+
+    // calculate index buffer size
+    int numOfFloatsInNodeArray = bvh.getNodes().size() * numFloatsInNode;
+    int nodePixelCount = numOfFloatsInNodeArray / floatsPerPixel;
+    int nodeTextureHeight = ((nodePixelCount - 1) / TEXTURE_WIDTH) + 1;
+
+    nodeTextureHeight = Utils::powerOfTwo(nodeTextureHeight);
+    nodePixelCount = TEXTURE_WIDTH * nodeTextureHeight;
+    numOfFloatsInNodeArray = nodePixelCount * floatsPerPixel;
+
+    std::vector<float> buffer;
+    buffer.resize(numOfFloatsInNodeArray, 0);
+    for (int i = 0; i < bvh.getNodes().size(); ++i) {
+        const auto& n = bvh.getNodes()[i];
+
+        // first pixel
+        buffer[i * numFloatsInNode + 0] = n.leftChild;
+        buffer[i * numFloatsInNode + 1] = n.rightChild;
+        buffer[i * numFloatsInNode + 2] = n.aabb.getMin().x;
+        buffer[i * numFloatsInNode + 3] = n.aabb.getMin().y;
+
+        // second pixel
+        buffer[i * numFloatsInNode + 4] = n.aabb.getMin().z;
+        buffer[i * numFloatsInNode + 5] = n.aabb.getMax().x;
+        buffer[i * numFloatsInNode + 6] = n.aabb.getMax().y;
+        buffer[i * numFloatsInNode + 7] = n.aabb.getMax().z;
+    }
+
+    return TextureGL(TEXTURE_WIDTH, nodeTextureHeight, format, buffer.data());
 }
 
 // FPS Camera rotate

@@ -48,8 +48,8 @@ public:
         return tminf > 0.0f;
     }
 
-    glm::vec3& getMin() { return min; }
-    glm::vec3& getMax() { return max; }
+    const glm::vec3& getMin() const { return min; }
+    const glm::vec3& getMax() const { return max; }
 };
 
 struct Triangle {
@@ -107,7 +107,7 @@ private:
 }; // node.triIndex = tempRightTriangleList[0].triIndex;
 
 struct Node {
-    //glm::vec4 dummy; // x for node index, xyz for triIndex
+    // glm::vec4 dummy; // x for node index, xyz for triIndex
     float leftChild, rightChild;
     AABB aabb;
 
@@ -129,7 +129,7 @@ public:
     void travelCycle(glm::vec3& origin, glm::vec3& direction, glm::vec3& color, float& minT);
     Node* const bvhToTexture();
     int getTextureSideSize();
-    const std::vector<Node>& getNodes();
+    const std::vector<Node>& getNodes() const { return nodeList; }
 
 private:
     void buildRecurcive(int nodeIndex, std::vector<Triangle> const& vecTriangle);

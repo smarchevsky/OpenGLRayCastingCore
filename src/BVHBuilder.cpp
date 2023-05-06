@@ -49,10 +49,7 @@ int BVHBuilder::getTextureSideSize()
     return texSize;
 }
 
-const std::vector<Node>& BVHBuilder::getNodes()
-{
-    return nodeList;
-}
+
 
 void BVHBuilder::buildRecurcive(int nodeIndex, std::vector<Triangle> const& vecTriangle)
 {

@@ -58,68 +58,60 @@ void loadGeometry(BVHBuilder& bvh, std::string const& path, Model3D& model)
     vertex.resize(pixelCount * floatsPerPixel, 0.0);
 }
 
-TextureGL createIndexTexture(const Model3D& model)
+TextureGL createGeometryTexture(const Model3D& model)
 {
-    const int floatsPerPixel = 4;
-    const auto format = TextureGLType::RGBA_32F;
+    constexpr int floatsPerPixel = 4;
+    constexpr auto format = TextureGLType::RGBA_32F;
 
-    int numFloatsInIndex = 4;
-    int numOfFloatsInIndexArray = model.triangles.size() * numFloatsInIndex; // triangle size is 3, align to 4
+    constexpr int numFloatsInIndex = 4;
+    constexpr int numFloatsInVertex = 8;
+    constexpr int numOfPixelPerVertex = numFloatsInVertex / floatsPerPixel;
+
+    // calculate index buffer size
+    int numOfFloatsInIndexArray = model.triangles.size() * numFloatsInIndex;
     int indexPixelCount = numOfFloatsInIndexArray / floatsPerPixel;
-
-    int indexTextureHeight = ((indexPixelCount - 1) / TEXTURE_WIDTH) + 1;
-    indexTextureHeight = Utils::powerOfTwo(indexTextureHeight);
-
+    const int indexTextureHeight = ((indexPixelCount - 1) / TEXTURE_WIDTH) + 1;
     indexPixelCount = TEXTURE_WIDTH * indexTextureHeight;
     numOfFloatsInIndexArray = indexPixelCount * floatsPerPixel;
 
-    std::vector<float> indexBuffer;
-    indexBuffer.resize(numOfFloatsInIndexArray, 0);
-    for (int i = 0; i < model.triangles.size(); ++i) {
-        const auto& t = model.triangles[i];
-        indexBuffer[i * numFloatsInIndex + 0] = (float)t[0];
-        indexBuffer[i * numFloatsInIndex + 1] = (float)t[1];
-        indexBuffer[i * numFloatsInIndex + 2] = (float)t[2];
-        indexBuffer[i * numFloatsInIndex + 3] = 0.f;
-    }
-
-    return TextureGL(TEXTURE_WIDTH, indexTextureHeight, format, indexBuffer.data());
-}
-
-TextureGL createVertexArrayTexture(const Model3D& model)
-{
-    const int floatsPerPixel = 4;
-    const auto format = TextureGLType::RGBA_32F;
-
-    int numFloatsInVertex = 8;
+    // calculate vertex buffer size
     int numOfFloatsInVertexArray = model.vertices.size() * numFloatsInVertex;
     int vertexPixelCount = numOfFloatsInVertexArray / floatsPerPixel;
-
     int vertexTextureHeight = ((vertexPixelCount - 1) / TEXTURE_WIDTH) + 1;
-    vertexTextureHeight = Utils::powerOfTwo(vertexTextureHeight);
-
     vertexPixelCount = TEXTURE_WIDTH * vertexTextureHeight;
     numOfFloatsInVertexArray = vertexPixelCount * floatsPerPixel;
 
-    std::vector<float> vertexArrayBuffer;
-    vertexArrayBuffer.resize(numOfFloatsInVertexArray, 0);
-    for (int i = 0; i < model.vertices.size(); ++i) {
-        const auto& v = model.vertices[i];
-        // first pixel
-        vertexArrayBuffer[i * numFloatsInVertex + 0] = v.position.x;
-        vertexArrayBuffer[i * numFloatsInVertex + 1] = v.position.y;
-        vertexArrayBuffer[i * numFloatsInVertex + 2] = v.position.z;
-        vertexArrayBuffer[i * numFloatsInVertex + 3] = v.normal.x;
-
-        // second pixel
-        vertexArrayBuffer[i * numFloatsInVertex + 4] = v.normal.y;
-        vertexArrayBuffer[i * numFloatsInVertex + 5] = v.normal.z;
-        vertexArrayBuffer[i * numFloatsInVertex + 6] = v.uv.x;
-        vertexArrayBuffer[i * numFloatsInVertex + 7] = v.uv.y;
+    std::vector<float> buffer;
+    buffer.resize(numOfFloatsInIndexArray + numOfFloatsInVertexArray, 0);
+    for (int i = 0; i < model.triangles.size(); ++i) {
+        const auto& t = model.triangles[i];
+        buffer[i * numFloatsInIndex + 0] = t[0] * numOfPixelPerVertex + indexPixelCount;
+        buffer[i * numFloatsInIndex + 1] = t[1] * numOfPixelPerVertex + indexPixelCount;
+        buffer[i * numFloatsInIndex + 2] = t[2] * numOfPixelPerVertex + indexPixelCount;
+        buffer[i * numFloatsInIndex + 3] = 0;
     }
 
+    for (int i = 0; i < model.vertices.size(); ++i) {
+        const auto& v = model.vertices[i];
 
-    return TextureGL(TEXTURE_WIDTH, vertexTextureHeight, format, vertexArrayBuffer.data());
+        // first pixel
+        buffer[numOfFloatsInIndexArray + i * numFloatsInVertex + 0] = v.position.x;
+        buffer[numOfFloatsInIndexArray + i * numFloatsInVertex + 1] = v.position.y;
+        buffer[numOfFloatsInIndexArray + i * numFloatsInVertex + 2] = v.position.z;
+        buffer[numOfFloatsInIndexArray + i * numFloatsInVertex + 3] = v.normal.x;
+
+        // second pixel
+        buffer[numOfFloatsInIndexArray + i * numFloatsInVertex + 4] = v.normal.y;
+        buffer[numOfFloatsInIndexArray + i * numFloatsInVertex + 5] = v.normal.z;
+        buffer[numOfFloatsInIndexArray + i * numFloatsInVertex + 6] = v.uv.x;
+        buffer[numOfFloatsInIndexArray + i * numFloatsInVertex + 7] = v.uv.y;
+    }
+
+    int textureHeight = Utils::powerOfTwo(indexTextureHeight + vertexTextureHeight);
+
+    ////////////////////// VERTEX DATA ///////////////////////
+
+    return TextureGL(TEXTURE_WIDTH, textureHeight, format, buffer.data());
 }
 
 TextureGL BVHNodesToTexture(BVHBuilder& bvh)
@@ -206,8 +198,8 @@ int main(int ArgCount, char** Args)
     Model3D model;
     loadGeometry(*bvh, "models/BullPlane.obj", model);
     TextureGL texNode = BVHNodesToTexture(*bvh);
-    TextureGL texIndex = createIndexTexture(model);
-    TextureGL texVertArray = createVertexArrayTexture(model);
+    TextureGL texIndexAndVertex = createGeometryTexture(model);
+    // TextureGL texVertArray = createVertexArrayTexture(model);
     ShaderProgram shaderProgram("shaders/vertex.vert", "shaders/raytracing.frag");
 
     // Variable for camera
@@ -267,11 +259,11 @@ int main(int ArgCount, char** Args)
         shaderProgram.setTextureAI("texNode", texNode);
         shaderProgram.setInt2("texNodeSize", texNode.getWidth(), texNode.getHeight());
 
-        shaderProgram.setTextureAI("texIndices", texIndex);
-        shaderProgram.setInt2("texIndicesSize", texIndex.getWidth(), texIndex.getHeight());
+        shaderProgram.setTextureAI("texGeometry", texIndexAndVertex);
+        shaderProgram.setInt2("texGeometrySize", texIndexAndVertex.getWidth(), texIndexAndVertex.getHeight());
 
-        shaderProgram.setTextureAI("texVertArray", texVertArray);
-        shaderProgram.setInt2("texVertArraySize", texVertArray.getWidth(), texVertArray.getHeight());
+        // shaderProgram.setTextureAI("texVertArray", texVertArray);
+        // shaderProgram.setInt2("texVertArraySize", texVertArray.getWidth(), texVertArray.getHeight());
 
         uint64_t currentTimeStamp = SDL_GetPerformanceCounter();
 

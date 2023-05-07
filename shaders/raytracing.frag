@@ -26,6 +26,9 @@ struct Ray
     vec3 direction;
     float tStart;
     float tEnd;
+    #ifdef debugShowBVH
+    int nodesVisited;
+    #endif
 };
 
 struct Hit
@@ -193,6 +196,9 @@ void traceCloseHitV2(inout Ray ray, inout Hit hit)
 
     for(int i = 0; (i < 1024) && (stackSize() > 0); i++)
     {
+        #ifdef debugShowBVH
+        ray.nodesVisited++;
+        #endif
         select = getNode(stackPop());
         if(!slabs(ray, select.aabbMin, select.aabbMax, tempt))
             continue;
@@ -257,6 +263,10 @@ void main() {
     ray.tStart = 0.0001;
     ray.tEnd = 10000;
 
+    #ifdef debugShowBVH
+    ray.nodesVisited = 0;
+    #endif
+
     Hit hit;
     //traceCloseFor(ray, hit);
     traceCloseHitV2(ray, hit);
@@ -264,7 +274,12 @@ void main() {
     //color = vec4(0.5+hit.normal*0.5, 1.0);
 
     vec3 col = vec3(-dot(hit.normal, ray.direction));
+
     color = vec4(hit.normal * .5 + 0.5, 1.0);
-    
+
+    #ifdef debugShowBVH
+    color.rgb += vec3(sqrt(ray.nodesVisited) * 0.05);
+    #endif
+
     //color = vec4(hit.uv, 0., 1.0);
 }

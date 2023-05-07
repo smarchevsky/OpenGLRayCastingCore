@@ -6,10 +6,13 @@
 #include "Utils.h"
 #include "glad.h" // Opengl function loader
 #include <assert.h>
+#include <filesystem>
+#include <fstream>
 #include <fwd.hpp> //GLM
 #include <gtc/matrix_transform.hpp>
 #include <iostream>
 #include <map>
+#include <sstream>
 
 using glm::mat3;
 using glm::mat4;
@@ -54,26 +57,18 @@ TextureGL createGeometryTexture(const BVHBuilder& bvh, const Model3D& model)
     // calculate index buffer size
     int numOfFloatsInNodeArray = bvh.getNodes().size() * nFloatsInNode;
     int nodePixelCount = numOfFloatsInNodeArray / floatsPerPixel;
-    int nodeTextureHeight = ((nodePixelCount - 1) / TEXTURE_WIDTH) + 1;
-    nodePixelCount = TEXTURE_WIDTH * nodeTextureHeight;
-    numOfFloatsInNodeArray = nodePixelCount * floatsPerPixel;
 
     // calculate index buffer size
     int numOfFloatsInIndexArray = model.triangles.size() * nFloatsInIndex;
     int indexPixelCount = numOfFloatsInIndexArray / floatsPerPixel;
-    const int indexTextureHeight = ((indexPixelCount - 1) / TEXTURE_WIDTH) + 1;
-    indexPixelCount = TEXTURE_WIDTH * indexTextureHeight;
-    numOfFloatsInIndexArray = indexPixelCount * floatsPerPixel;
 
     // calculate vertex buffer size
     int numOfFloatsInVertexArray = model.vertices.size() * nFloatsInVertex;
     int vertexPixelCount = numOfFloatsInVertexArray / floatsPerPixel;
-    int vertexTextureHeight = ((vertexPixelCount - 1) / TEXTURE_WIDTH) + 1;
-    // vertexPixelCount = TEXTURE_WIDTH * vertexTextureHeight;
-    //  numOfFloatsInVertexArray = vertexPixelCount * floatsPerPixel;
 
-    int textureHeight = Utils::powerOfTwo(
-        nodeTextureHeight + indexTextureHeight + vertexTextureHeight);
+    int overallPixelCount = nodePixelCount + indexPixelCount + vertexPixelCount;
+    int textureHeight = ((overallPixelCount - 1) / TEXTURE_WIDTH) + 1;
+    textureHeight = Utils::powerOfTwo(textureHeight);
 
     int floatOffset = 0;
 
@@ -137,13 +132,10 @@ TextureGL createGeometryTexture(const BVHBuilder& bvh, const Model3D& model)
         buffer[floatOffset + i * nFloatsInVertex + 6] = v.uv.x;
         buffer[floatOffset + i * nFloatsInVertex + 7] = v.uv.y;
     }
-
-    LOG("NodeTextureHeight: " << nodeTextureHeight
-                              << ", IndexTextureHeight: " << indexTextureHeight
-                              << ", VertexTextureHeight: " << vertexTextureHeight
-                              << ", OverallTextureHeight: " << textureHeight);
-
-    ////////////////////// VERTEX DATA ///////////////////////
+    LOG("Node pixel count: " << nodePixelCount
+                             << ", Index pixel count: " << indexPixelCount
+                             << ", Vertex pixel count: " << vertexPixelCount);
+    LOG("TextureResolution: " << TEXTURE_WIDTH << "x" << textureHeight);
 
     return TextureGL(TEXTURE_WIDTH, textureHeight, format, buffer.data());
 }
@@ -223,7 +215,9 @@ int main(int ArgCount, char** Args)
     BVHBuilder* bvh = new BVHBuilder(); // Big object
 
     Model3D model;
-    loadGeometry(*bvh, "models/BullPlane.obj", model);
+    // loadGeometry(*bvh, "models/stanford_dragon.obj", model);
+    // loadGeometry(*bvh, "models/BullPlane.obj", model);
+    loadGeometry(*bvh, "models/susanne.obj", model);
     TextureGL texAllGeometry = createGeometryTexture(*bvh, model);
     // TextureGL texVertArray = createVertexArrayTexture(model);
     ShaderProgram shaderProgram("shaders/vertex.vert", "shaders/raytracing.frag");

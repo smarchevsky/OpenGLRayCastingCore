@@ -108,6 +108,7 @@ struct Node {
     Node()
         : leftChild(0)
         , rightChild(0)
+        , aabb(glm::vec3(0), glm::vec3(0))
     {
         constexpr int size = sizeof(*this) / sizeof(float);
     }

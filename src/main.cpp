@@ -215,9 +215,9 @@ int main(int ArgCount, char** Args)
     BVHBuilder* bvh = new BVHBuilder(); // Big object
 
     Model3D model;
-    // loadGeometry(*bvh, "models/stanford_dragon.obj", model);
     // loadGeometry(*bvh, "models/BullPlane.obj", model);
-    loadGeometry(*bvh, "models/susanne.obj", model);
+    loadGeometry(*bvh, "models/stanford_dragon.obj", model);
+    // loadGeometry(*bvh, "models/susanne_lowpoly.obj", model);
     TextureGL texAllGeometry = createGeometryTexture(*bvh, model);
     // TextureGL texVertArray = createVertexArrayTexture(model);
     ShaderProgram shaderProgram("shaders/vertex.vert", "shaders/raytracing.frag");

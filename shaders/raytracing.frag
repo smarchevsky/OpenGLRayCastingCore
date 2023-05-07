@@ -62,13 +62,13 @@ Node getNode(int index)
     vec4 data0 = getData(index + 0);
     vec4 data1 = getData(index + 1);
 
-	Node node;
+    Node node;
+    node.leftChild = floatBitsToInt(data0.r);
+    node.rightChild = floatBitsToInt(data0.g);
+    node.aabbMin = vec3(data0.ba, data1.r);
+    node.aabbMax = data1.gba;
 
-        node.leftChild = floatBitsToInt(data0.r);
-        node.rightChild = floatBitsToInt(data0.g);
-	node.aabbMin = vec3(data0.ba, data1.r);
-	node.aabbMax = data1.gba;
-	return node;
+    return node;
 }
 
 
@@ -114,7 +114,7 @@ int stackSize()
 
 void stackPush(in int node)
 {
-    if(_index > 14	)
+    if(_index > 14)
         discard;
     _stack[++_index] = node;
  
@@ -152,7 +152,7 @@ bool isect_tri(inout Ray ray, in IndexedTriangle tri, inout Hit hit) {
 	vec3 P = cross(ray.direction, e2);
 	float det = dot(e1, P);
         // if (abs(det) < 1e-10) // small parts can disappear here
-        // return false;
+        //     return false;
 
 	float inv_det = 1. / det;
 	vec3 T = (ray.origin - tri.v0.p);
@@ -191,7 +191,7 @@ void traceCloseHitV2(inout Ray ray, inout Hit hit)
     IndexedTriangle try;
     float tempt;
 
-    while(stackSize() != 0)
+    for(int i = 0; (i < 1024) && (stackSize() > 0); i++)
     {
         select = getNode(stackPop());
         if(!slabs(ray, select.aabbMin, select.aabbMax, tempt))

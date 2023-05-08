@@ -21,8 +21,6 @@ using glm::vec3;
 using glm::vec4;
 using std::vector;
 
-constexpr int TEXTURE_WIDTH = 256;
-
 #define LOG(x) std::cout << x << std::endl
 
 constexpr int WinWidth = 1920;
@@ -67,13 +65,15 @@ TextureGL createGeometryTexture(const BVHBuilder& bvh, const Model3D& model)
     int vertexPixelCount = numOfFloatsInVertexArray / floatsPerPixel;
 
     int overallPixelCount = nodePixelCount + indexPixelCount + vertexPixelCount;
-    int textureHeight = ((overallPixelCount - 1) / TEXTURE_WIDTH) + 1;
-    textureHeight = Utils::powerOfTwo(textureHeight);
+    int overallPixelCountToPower2 = Utils::powerOfTwo(overallPixelCount);
+
+    const int textureWidth = Utils::powerOfTwo(sqrtf(overallPixelCountToPower2));
+    const int textureHeight = overallPixelCountToPower2 / textureWidth;
 
     int floatOffset = 0;
 
     std::vector<float> buffer;
-    buffer.resize(textureHeight * TEXTURE_WIDTH * floatsPerPixel, 0);
+    buffer.resize(textureHeight * textureWidth * floatsPerPixel, 0);
 
     const int nodeIndexPixelOffset = nodePixelCount;
 
@@ -135,9 +135,9 @@ TextureGL createGeometryTexture(const BVHBuilder& bvh, const Model3D& model)
     LOG("Node pixel count: " << nodePixelCount
                              << ", Index pixel count: " << indexPixelCount
                              << ", Vertex pixel count: " << vertexPixelCount);
-    LOG("TextureResolution: " << TEXTURE_WIDTH << "x" << textureHeight);
+    LOG("TextureResolution: " << textureWidth << "x" << textureHeight);
 
-    return TextureGL(TEXTURE_WIDTH, textureHeight, format, buffer.data());
+    return TextureGL(textureWidth, textureHeight, format, buffer.data());
 }
 
 // FPS Camera rotate
@@ -218,6 +218,7 @@ int main(int ArgCount, char** Args)
     // loadGeometry(*bvh, "models/BullPlane.obj", model);
     loadGeometry(*bvh, "models/stanford_dragon.obj", model);
     // loadGeometry(*bvh, "models/susanne_lowpoly.obj", model);
+
     TextureGL texAllGeometry = createGeometryTexture(*bvh, model);
     // TextureGL texVertArray = createVertexArrayTexture(model);
     ShaderProgram shaderProgram("shaders/vertex.vert", "shaders/raytracing.frag");

@@ -10,7 +10,17 @@ uniform mat3 viewToWorld;
 uniform sampler2D texGeometry;
 uniform ivec2 texGeometrySize;
 
-//------------------- STRUCT AND LOADER BEGIN -----------------------
+//------------------- STACK -----------------------
+
+int countTI = 0;
+int _stack[15];
+int _index = -1;
+void stackClear() { _index = -1; }
+int stackSize() { return _index + 1; }
+void stackPush(in int node) { if(_index > 14) discard; _stack[++_index] = node; }
+int stackPop() { return _stack[_index--]; }
+
+//------------------- STRUCTS -----------------------
 
 struct Node
 {
@@ -52,6 +62,8 @@ struct IndexedTriangle
    Vertex v2;
 };
 
+//------------------- GETTERS -----------------------
+
 vec4 getData(int index)
 {
     int x = index % texGeometrySize.x;
@@ -73,8 +85,6 @@ Node getNode(int index)
 
     return node;
 }
-
-
 
 IndexedTriangle getIndexedTriangle(int triIndex)
 {
@@ -98,36 +108,7 @@ IndexedTriangle getIndexedTriangle(int triIndex)
     return triangle;
 }
 
-//------------------- STRUCT AND LOADER END -----------------------
-
-//------------------- STACK BEGIN -----------------------
-int countTI = 0;
-int _stack[15];
-int _index = -1;
-
-void stackClear()
-{
-    _index = -1;
-}
-
-int stackSize()
-{
-    return _index + 1;
-}
-
-void stackPush(in int node)
-{
-    if(_index > 14)
-        discard;
-    _stack[++_index] = node;
- 
-}
-
-int stackPop()
-{
-    return _stack[_index--];
-}
-//------------------- STACK END -----------------------
+//------------------- INTERSECTIONS -----------------------
 
 bool slabs(in Ray ray, in vec3 minB, in vec3 maxB, inout float localMin) {
 
@@ -184,6 +165,8 @@ bool isect_tri(inout Ray ray, in IndexedTriangle tri, inout Hit hit) {
     }
     return false;
 }
+
+//------------------- TRACE -----------------------
 
 void traceCloseHitV2(inout Ray ray, inout Hit hit)
 {
@@ -254,7 +237,7 @@ void traceCloseHitV2(inout Ray ray, inout Hit hit)
 }
 
 void main() {
-    vec3 viewDir = normalize(vec3((gl_FragCoord.xy - screeResolution.xy*0.5) / screeResolution.y, 1.0));
+    vec3 viewDir = normalize(vec3((gl_FragCoord.xy - screeResolution.xy * 0.5) / screeResolution.y, 1.0));
     vec3 worldDir = viewToWorld * viewDir;
 
     Ray ray;
@@ -262,24 +245,15 @@ void main() {
     ray.origin = location;
     ray.tStart = 0.0001;
     ray.tEnd = 10000;
-
     #ifdef debugShowBVH
     ray.nodesVisited = 0;
     #endif
 
     Hit hit;
-    //traceCloseFor(ray, hit);
     traceCloseHitV2(ray, hit);
-    //color = vec4(fragCoord,0.0,1.0);
-    //color = vec4(0.5+hit.normal*0.5, 1.0);
-
-    vec3 col = vec3(-dot(hit.normal, ray.direction));
-
     color = vec4(hit.normal * .5 + 0.5, 1.0);
 
     #ifdef debugShowBVH
     color.rgb += vec3(sqrt(ray.nodesVisited) * 0.05);
     #endif
-
-    //color = vec4(hit.uv, 0., 1.0);
 }

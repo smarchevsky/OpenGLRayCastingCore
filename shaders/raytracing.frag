@@ -10,6 +10,16 @@ uniform mat3 viewToWorld;
 uniform sampler2D texGeometry;
 uniform ivec2 texGeometrySize;
 
+// #ifdef debugShowBVH
+
+// reinterpret integers (tri indices, vert indices) to float texture
+// advantage - create bigger than 16777216 pixel texture
+// drawbacks - some drivers do calculation with NEAREST sample as well, so data can be corrupted
+// to fetch int data in shader - use floatBitsToInt(...)
+// apply the same macro definition in texture assembly!
+
+#define REINTERPRET_FLOAT_DATA
+
 //------------------- STACK -----------------------
 
 int countTI = 0;
@@ -78,8 +88,15 @@ Node getNode(int index)
     vec4 data1 = getData(index + 1);
 
     Node node;
+
+#ifdef REINTERPRET_FLOAT_DATA
     node.leftChild = floatBitsToInt(data0.r);
     node.rightChild = floatBitsToInt(data0.g);
+ #else
+    node.leftChild = int(data0.r);
+    node.rightChild = int(data0.g);
+#endif
+
     node.aabbMin = vec3(data0.ba, data1.r);
     node.aabbMax = data1.gba;
 
@@ -88,7 +105,11 @@ Node getNode(int index)
 
 IndexedTriangle getIndexedTriangle(int triIndex)
 {
+#ifdef REINTERPRET_FLOAT_DATA
     ivec3 triIndices = floatBitsToInt(getData(triIndex).rgb);
+#else
+    ivec3 triIndices = ivec3(getData(triIndex).rgb);
+#endif
 
     vec4 data0, data1;
     IndexedTriangle triangle;

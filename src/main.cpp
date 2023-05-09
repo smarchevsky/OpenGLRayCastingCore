@@ -21,6 +21,15 @@ using glm::vec3;
 using glm::vec4;
 using std::vector;
 
+// reinterpret integers (tri indices, vert indices) to float texture
+// advantage - create bigger than 16777216 pixel texture
+// drawbacks - some drivers do calculation with NEAREST texture sample as well, so data can be corrupted
+// to fetch int data in shader - use floatBitsToInt(...)
+// apply the same macro in raytracing shader!
+
+#define REINTERPRET_FLOAT_DATA
+// Nvidia propietary 530 driver works fine, Intel Mesa - does some mess.
+
 #define LOG(x) std::cout << x << std::endl
 
 constexpr int WinWidth = 1920;
@@ -65,10 +74,14 @@ TextureGL createGeometryTexture(const BVHBuilder& bvh, const Model3D& model)
     int vertexPixelCount = numOfFloatsInVertexArray / floatsPerPixel;
 
     int overallPixelCount = nodePixelCount + indexPixelCount + vertexPixelCount;
-    int overallPixelCountToPower2 = Utils::powerOfTwo(overallPixelCount);
+    overallPixelCount = Utils::powerOfTwo(overallPixelCount);
 
-    const int textureWidth = Utils::powerOfTwo(sqrtf(overallPixelCountToPower2));
-    const int textureHeight = overallPixelCountToPower2 / textureWidth;
+#ifndef REINTERPRET_FLOAT_DATA
+    assert(overallPixelCount <= 16777216 && "You can not sample more than 16777216 index with float indices");
+#endif
+
+    const int textureWidth = Utils::powerOfTwo(sqrtf(overallPixelCount));
+    const int textureHeight = overallPixelCount / textureWidth;
 
     int floatOffset = 0;
 
@@ -89,8 +102,14 @@ TextureGL createGeometryTexture(const BVHBuilder& bvh, const Model3D& model)
             : n.rightChild * nPixelPerNode;
 
         // first pixel
+#ifdef REINTERPRET_FLOAT_DATA
         buffer[i * nFloatsInNode + 0] = reinterpret_cast<float&>(leftChildIndex);
         buffer[i * nFloatsInNode + 1] = reinterpret_cast<float&>(rightChildIndex);
+#else
+        buffer[i * nFloatsInNode + 0] = float(leftChildIndex);
+        buffer[i * nFloatsInNode + 1] = float(rightChildIndex);
+#endif
+
         buffer[i * nFloatsInNode + 2] = n.aabb.getMin().x;
         buffer[i * nFloatsInNode + 3] = n.aabb.getMin().y;
 
@@ -110,9 +129,17 @@ TextureGL createGeometryTexture(const BVHBuilder& bvh, const Model3D& model)
         int t0 = t[0] * nPixelPerVertex + triIndexPixelOffset;
         int t1 = t[1] * nPixelPerVertex + triIndexPixelOffset;
         int t2 = t[2] * nPixelPerVertex + triIndexPixelOffset;
+
+#ifdef REINTERPRET_FLOAT_DATA
         buffer[floatOffset + i * nFloatsInIndex + 0] = reinterpret_cast<float&>(t0);
         buffer[floatOffset + i * nFloatsInIndex + 1] = reinterpret_cast<float&>(t1);
         buffer[floatOffset + i * nFloatsInIndex + 2] = reinterpret_cast<float&>(t2);
+#else
+        buffer[floatOffset + i * nFloatsInIndex + 0] = float(t0);
+        buffer[floatOffset + i * nFloatsInIndex + 1] = float(t1);
+        buffer[floatOffset + i * nFloatsInIndex + 2] = float(t2);
+#endif
+
         buffer[floatOffset + i * nFloatsInIndex + 3] = 0;
     }
     floatOffset += numOfFloatsInIndexArray;

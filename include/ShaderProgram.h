@@ -8,6 +8,7 @@ public:
     void bind();
     void setTexture(std::string const& textureName, uint32_t texID, int texUnitSlot);
     void setTextureAI(std::string const& textureName, TextureGL const& texture);
+    void setMatrix4x4(const std::string& matrixName, const glm::mat4& matrix, int count = 1, bool transpose = false);
     void setMatrix3x3(std::string const& matrixName, glm::mat3 const& matrix, int count = 1, bool transpose = false);
     void setVec3(std::string const& vectorName, glm::vec3 const& vector);
     void setVec2(std::string const& vectorName, glm::vec2 const& vector);

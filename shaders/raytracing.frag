@@ -3,9 +3,11 @@
 in vec2 fragCoord;
 out vec4 color;
 
-uniform vec3 location;
+// uniform vec3 location;
+// uniform mat3 viewToWorld;
+uniform mat4 viewToWorld;
+
 uniform vec2 screeResolution;
-uniform mat3 viewToWorld;
 
 uniform sampler2D texGeometry;
 uniform ivec2 texGeometrySize;
@@ -259,11 +261,11 @@ void traceCloseHitV2(inout Ray ray, inout Hit hit)
 
 void main() {
     vec3 viewDir = normalize(vec3((gl_FragCoord.xy - screeResolution.xy * 0.5) / screeResolution.y, 1.0));
-    vec3 worldDir = viewToWorld * viewDir;
+    vec3 worldDir = mat3(viewToWorld) * viewDir;
 
     Ray ray;
     ray.direction = worldDir;
-    ray.origin = location;
+    ray.origin = viewToWorld[3].xyz;
     ray.tStart = 0.0001;
     ray.tEnd = 10000;
     #ifdef debugShowBVH

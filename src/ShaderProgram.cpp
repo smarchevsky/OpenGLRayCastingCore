@@ -87,10 +87,18 @@ void ShaderProgram::setTextureAI(std::string const& textureName, TextureGL const
     texUnitSlotIndex++;
 }
 
-void ShaderProgram::setMatrix3x3(std::string const& matrixName, glm::mat3 const& matrix, int count, bool transpose)
+void ShaderProgram::setMatrix3x3(std::string const& matrixName,
+    glm::mat3 const& matrix, int count, bool transpose)
 {
     uint32_t matrixLocation = glGetUniformLocation(programID, matrixName.data());
     glUniformMatrix3fv(matrixLocation, count, transpose, &matrix[0][0]);
+}
+
+void ShaderProgram::setMatrix4x4(std::string const& matrixName,
+    glm::mat4 const& matrix, int count, bool transpose)
+{
+    uint32_t matrixLocation = glGetUniformLocation(programID, matrixName.data());
+    glUniformMatrix4fv(matrixLocation, count, transpose, &matrix[0][0]);
 }
 
 void ShaderProgram::setVec3(std::string const& vectorName, glm::vec3 const& vector)

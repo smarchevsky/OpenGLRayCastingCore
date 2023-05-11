@@ -167,8 +167,8 @@ TextureGL createGeometryTexture(const BVHBuilder& bvh, const Model3D& model)
     return TextureGL(textureWidth, textureHeight, format, buffer.data());
 }
 
-// FPS Camera rotate
-void updateMatrix(glm::mat3& viewToWorld)
+// FPS Camera move
+void cameraRotateMove(glm::mat4& cameraTransform)
 {
     mat4 matPitch = mat4(1.0);
     mat4 matYaw = mat4(1.0);
@@ -177,30 +177,30 @@ void updateMatrix(glm::mat3& viewToWorld)
     matYaw = glm::rotate(matYaw, glm::radians(yaw), vec3(0, 1, 0));
 
     mat4 rotateMatrix = matYaw * matPitch;
-    viewToWorld = mat3(rotateMatrix);
-}
 
-// FPS Camera move
-void cameraMove(vec3& location, glm::mat3 const& viewToWorld)
-{
+    /////////////////////////////////////
+    vec4 cameraPos = cameraTransform[3];
     float speed = 0.2f;
     if (buttinInputKeys[SDLK_w])
-        location += viewToWorld * vec3(0, 0, 1) * speed;
+        cameraPos += rotateMatrix * vec4(0, 0, 1, 0) * speed;
 
     if (buttinInputKeys[SDLK_s])
-        location += viewToWorld * vec3(0, 0, -1) * speed;
+        cameraPos += rotateMatrix * vec4(0, 0, -1, 0) * speed;
 
     if (buttinInputKeys[SDLK_a])
-        location += viewToWorld * vec3(-1, 0, 0) * speed;
+        cameraPos += rotateMatrix * vec4(-1, 0, 0, 0) * speed;
 
     if (buttinInputKeys[SDLK_d])
-        location += viewToWorld * vec3(1, 0, 0) * speed;
+        cameraPos += rotateMatrix * vec4(1, 0, 0, 0) * speed;
 
     if (buttinInputKeys[SDLK_q])
-        location += viewToWorld * vec3(0, 1, 0) * speed;
+        cameraPos += rotateMatrix * vec4(0, 1, 0, 0) * speed;
 
     if (buttinInputKeys[SDLK_e])
-        location += viewToWorld * vec3(0, -1, 0) * speed;
+        cameraPos += rotateMatrix * vec4(0, -1, 0, 0) * speed;
+
+    cameraTransform = rotateMatrix;
+    cameraTransform[3] = cameraPos;
 }
 
 int main(int ArgCount, char** Args)
@@ -251,8 +251,8 @@ int main(int ArgCount, char** Args)
     ShaderProgram shaderProgram("shaders/vertex.vert", "shaders/raytracing.frag");
 
     // Variable for camera
-    vec3 location = vec3(11, 0.01, -0.501);
-    mat3 viewToWorld = mat3(1.0f);
+    mat4 cameraTransform = mat4(1);
+    cameraTransform[3] = vec4(11, 0.01, -0.501, 1);
 
     // Add value  in map
     buttinInputKeys[SDLK_w] = false;
@@ -287,8 +287,7 @@ int main(int ArgCount, char** Args)
                 return 0;
         }
 
-        cameraMove(location, viewToWorld);
-        updateMatrix(viewToWorld);
+        cameraRotateMove(cameraTransform);
 
         // Render/Draw
         // Clear the colorbuffer
@@ -300,8 +299,13 @@ int main(int ArgCount, char** Args)
         shaderProgram.bind();
         glBindVertexArray(VAO);
 
-        shaderProgram.setMatrix3x3("viewToWorld", viewToWorld);
-        shaderProgram.setVec3("location", location);
+        // auto rotMat = mat3(cameraTransform);
+        // auto pos = vec3(cameraTransform[3].x, cameraTransform[3].y, cameraTransform[3].z);
+        // shaderProgram.setMatrix3x3("viewToWorld", rotMat);
+        // shaderProgram.setVec3("location", pos);
+
+        shaderProgram.setMatrix4x4("viewToWorld", cameraTransform);
+
         shaderProgram.setVec2("screeResolution", vec2(WinWidth, WinHeight));
 
         shaderProgram.setTextureAI("texGeometry", texAllGeometry);
